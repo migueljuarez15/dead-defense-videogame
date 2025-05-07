@@ -1,9 +1,15 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.plugins.FileLocator;
+import com.jme3.audio.AudioData;
+import com.jme3.audio.AudioNode;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.PhysicsSpace;
+import com.jme3.bullet.collision.PhysicsCollisionEvent;
+import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.*;
@@ -14,12 +20,13 @@ import com.jme3.scene.*;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
 
-public class Main extends SimpleApplication {
+public class Main extends SimpleApplication implements PhysicsCollisionListener {
 
     private Node enemyPath;
     private float spawnTimer = 0;
     private float spawnInterval = 5f;
     private BulletAppState bulletAppState;
+    private AudioNode hitSound;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -28,43 +35,39 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        // ✅ Luz direccional
+        // 🔴 Mueve esto arriba de todo
+        bulletAppState = new BulletAppState();
+        stateManager.attach(bulletAppState);
+        bulletAppState.getPhysicsSpace().addCollisionListener(this);
+
+        // ✅ Ahora puedes usar bulletAppState sin error
         DirectionalLight sun = new DirectionalLight();
         sun.setDirection(new Vector3f(-0.5f, -1f, -0.5f).normalizeLocal());
         sun.setColor(ColorRGBA.White);
         rootNode.addLight(sun);
 
-        // ✅ Luz ambiental
         AmbientLight ambient = new AmbientLight();
         ambient.setColor(ColorRGBA.White.mult(0.3f));
         rootNode.addLight(ambient);
 
-        // ✅ Terreno/piso visible
         createGround();
-
-        // ✅ Crear camino de enemigos
         createPath();
-
-        // ✅ Crear jugador
         createPlayer();
 
-        // ✅ Posicionar cámara desde arriba
-        /*cam.setLocation(new Vector3f(0, 20, 20));
-        cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
-
-        // Desactivar cámara libre
-        flyCam.setEnabled(false);*/
-        
         flyCam.setEnabled(true);
         flyCam.setMoveSpeed(10f);
         inputManager.setCursorVisible(false);
-        
+
         inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addListener(actionListener, "Shoot");
-        
-        bulletAppState = new BulletAppState();
-        stateManager.attach(bulletAppState);
+
+        hitSound = new AudioNode(assetManager, "Sounds/Disparo.wav", AudioData.DataType.Buffer);
+        hitSound.setLooping(false);
+        hitSound.setPositional(false);
+        hitSound.setVolume(5f);
+        rootNode.attachChild(hitSound);
     }
+
 
     @Override
     public void simpleUpdate(float tpf) {
@@ -85,6 +88,11 @@ public class Main extends SimpleApplication {
         ground.setMaterial(mat);
         ground.setLocalTranslation(0, -0.1f, 0);
         rootNode.attachChild(ground);
+
+        // Añadir físicas al suelo
+        RigidBodyControl groundControl = new RigidBodyControl(0.0f);
+        ground.addControl(groundControl);
+        bulletAppState.getPhysicsSpace().add(groundControl);
     }
 
     private void createPath() {
@@ -119,19 +127,24 @@ public class Main extends SimpleApplication {
     }
 
     private void spawnEnemy() {
-        Box box = new Box(0.5f, 0.5f, 0.5f);
-        Geometry enemy = new Geometry("Enemy", box);
-        Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        mat.setBoolean("UseMaterialColors", true);
-        mat.setColor("Diffuse", ColorRGBA.Green);
-        mat.setColor("Ambient", ColorRGBA.Green);
-        enemy.setMaterial(mat);
+        // Cargar el modelo del enemigo (debe estar convertido a .j3o)
+        Spatial enemy = assetManager.loadModel("Models/Enemigos/skeleton.j3o");
+        enemy.setName("Enemy");
         enemy.setLocalTranslation(enemyPath.getChild(0).getLocalTranslation().clone());
 
+        // Añadir control personalizado de movimiento
         EnemigoControl control = new EnemigoControl(enemyPath);
         enemy.addControl(control);
+
+        // Añadir colisión fantasma para detección
+        RigidBodyControl physics = new RigidBodyControl(0f); // sin masa, no afectado por física
+        enemy.addControl(physics);
+        bulletAppState.getPhysicsSpace().add(physics);
+
+        // Añadir al mundo
         rootNode.attachChild(enemy);
     }
+
 
     private void createPlayer() {
         // Cubo como jugador
@@ -154,30 +167,28 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addListener(control, "Forward", "Backward", "Left", "Right");
     }
-    
+
     private void shoot() {
         Sphere sphere = new Sphere(8, 8, 0.2f);
-        Geometry bullet = new Geometry("Bullet", sphere);
+        Geometry bullet = new Geometry("Bullet", sphere);  // Nombre clave para colisión
+        bullet.setName("Bullet");
+
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", ColorRGBA.Red);
         bullet.setMaterial(mat);
 
-        // Posición inicial: frente a la cámara
         Vector3f camDir = cam.getDirection().normalize();
-        Vector3f camLoc = cam.getLocation().add(camDir.mult(1f)); // justo frente a la cámara
+        Vector3f camLoc = cam.getLocation().add(camDir.mult(1f));
         bullet.setLocalTranslation(camLoc);
 
-        // Añadir al mundo
         rootNode.attachChild(bullet);
 
-        // Usamos RigidBodyControl para que se mueva
         RigidBodyControl bulletControl = new RigidBodyControl(1f);
         bullet.addControl(bulletControl);
-        bulletControl.setLinearVelocity(camDir.mult(20)); // velocidad de disparo
-
+        bulletControl.setLinearVelocity(camDir.mult(20));
         bulletAppState.getPhysicsSpace().add(bulletControl);
     }
-    
+
     private ActionListener actionListener = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("Shoot") && isPressed) {
@@ -185,4 +196,31 @@ public class Main extends SimpleApplication {
             }
         }
     };
+
+    @Override
+    public void collision(PhysicsCollisionEvent event) {
+        Spatial a = event.getNodeA();
+        Spatial b = event.getNodeB();
+
+        if (a == null || b == null) return;
+
+        if (a.getName().equals("Bullet") && b.getName().equals("Enemy")) {
+            enemyHit(b);
+            a.removeFromParent();
+        } else if (b.getName().equals("Bullet") && a.getName().equals("Enemy")) {
+            enemyHit(a);
+            b.removeFromParent();
+        }
+    }
+
+    private void enemyHit(Spatial enemy) {
+        EnemigoControl control = enemy.getControl(EnemigoControl.class);
+        if (control != null) {
+            control.die();
+        }
+
+        if (hitSound != null) {
+            hitSound.playInstance();
+        }
+    }
 }
