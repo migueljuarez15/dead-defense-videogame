@@ -47,6 +47,11 @@ public class EnemigoControl extends AbstractControl {
             Vector3f move = direction.normalize().mult(speed * tpf);
             spatial.move(move);
         }
+        
+        GhostControl ghost = spatial.getControl(GhostControl.class);
+        if (ghost != null) {
+            ghost.setPhysicsLocation(spatial.getWorldTranslation());
+        }
     }
 
     @Override
@@ -57,5 +62,13 @@ public class EnemigoControl extends AbstractControl {
             isDead = true;
             spatial.setLocalRotation(spatial.getLocalRotation().fromAngles((float)Math.toRadians(90), 0, 0));
         }
+    }
+
+    public boolean isDead() {
+        return isDead;
+    }
+
+    public void markDead() {
+        this.isDead = true;
     }
 }

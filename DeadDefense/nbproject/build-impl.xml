@@ -20,6 +20,7 @@ is divided into following sections:
 
         -->
 <project xmlns:if="ant:if" xmlns:j2seproject1="http://www.netbeans.org/ns/j2se-project/1" xmlns:j2seproject3="http://www.netbeans.org/ns/j2se-project/3" xmlns:jaxrpc="http://www.netbeans.org/ns/j2se-project/jax-rpc" xmlns:unless="ant:unless" basedir=".." default="default" name="DeadDefense-impl">
+    <import file="assets-impl.xml"/>
     <fail message="Please build using Ant 1.8.0 or higher.">
         <condition>
             <not>
@@ -118,7 +119,7 @@ is divided into following sections:
         <property name="dist.jlink.output" value="${dist.jlink.dir}/${application.title}"/>
         <property name="module.name" value=""/>
     </target>
-    <target depends="-pre-init,-init-private,-init-user,-init-project,-init-macrodef-property,-init-modules-supported" name="-do-init">
+    <target depends="-pre-init,-init-private,-init-user,-init-project,-init-macrodef-property,-init-modules-supported,-init-assets" name="-do-init">
         <property name="platform.java" value="${java.home}/bin/java"/>
         <available file="${manifest.file}" property="manifest.available"/>
         <condition property="splashscreen.available">
