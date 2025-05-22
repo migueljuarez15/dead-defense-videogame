@@ -23,6 +23,7 @@ import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
+import com.jme3.system.AppSettings;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
 
@@ -37,6 +38,16 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
     public static void main(String[] args) {
         Main app = new Main();
+        // Crear configuración personalizada
+        AppSettings settings = new AppSettings(true);
+        settings.setTitle("Dead Defense");
+
+        // Cambiar el logo del mono
+        settings.setSettingsDialogImage("/Images/deadDefense.png");
+
+        // Asignar configuración a la app
+        app.setSettings(settings);
+        app.setShowSettings(true); // Muestra el diálogo al iniciar
         app.start();
     }
 
