@@ -24,6 +24,7 @@ import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.system.AppSettings;
+import com.jme3.texture.Texture;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
 
@@ -35,11 +36,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private int playerHealth = 100;
     private int bulletsFired = 0;
     private BitmapText healthText, bulletsText;
+    
 
     public static void main(String[] args) {
         Main app = new Main();
         // Crear configuración personalizada
-        AppSettings settings = new AppSettings(true);
+        AppSettings settings = new AppSettings(false);
         settings.setTitle("Dead Defense");
 
         // Cambiar el logo del mono
@@ -53,6 +55,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
     @Override
     public void simpleInitApp() {
+     
         // 🔴 Mueve esto arriba de todo
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
@@ -119,8 +122,117 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         ammoText.setLocalTranslation(10, settings.getHeight() - 50, 0);
         ammoText.setText("Munición: Infinita");
         guiNode.attachChild(ammoText);
-    }
+        
+        //Escena para suelo de cementerio
+        Box sueloBox = new Box(50, 0.15f, 50); 
+        Geometry suelo = new Geometry("Suelo", sueloBox);
+        Material matSuelo = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
 
+        // Cargar la textura
+        Texture texSuelo = assetManager.loadTexture("Textures/grass.jpg");
+        texSuelo.setWrap(Texture.WrapMode.Repeat);
+        matSuelo.setTexture("DiffuseMap", texSuelo);
+
+        matSuelo.setBoolean("UseMaterialColors", true);
+        matSuelo.setColor("Diffuse", ColorRGBA.White);
+        matSuelo.setFloat("Shininess", 2f);
+        suelo.setMaterial(matSuelo);
+
+        // Escala de las coordenadas de la textura (ajuste)
+        sueloBox.scaleTextureCoordinates(new Vector2f(50, 50));  // Ajusta la escala aquí
+
+        suelo.setLocalTranslation(0, -0.1f, 0);
+        rootNode.attachChild(suelo);
+        createCemeteryStructures();
+        
+    }
+    
+ 
+    
+    private void createCemeteryStructures() {
+    // Crear suelo del cementerio
+    Box sueloBox = new Box(50, 0.12f, 50);
+    Geometry suelo = new Geometry("Suelo", sueloBox);
+    Material matSuelo = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+
+    // Cargar la textura
+    Texture texSuelo = assetManager.loadTexture("Textures/grass.jpg");
+    texSuelo.setWrap(Texture.WrapMode.Repeat);
+    matSuelo.setTexture("DiffuseMap", texSuelo);
+    matSuelo.setBoolean("UseMaterialColors", true);
+    matSuelo.setColor("Diffuse", ColorRGBA.White);
+    matSuelo.setFloat("Shininess", 2f);
+    suelo.setMaterial(matSuelo);
+
+    // Ajustar coordenadas de la textura
+    sueloBox.scaleTextureCoordinates(new Vector2f(50, 50));
+    suelo.setLocalTranslation(0, -0.1f, 0);
+    
+    rootNode.attachChild(suelo);
+
+    
+    int tombCount = 25; // Cantidad de tumbas
+    float areaSize = 80f; // Área dentro de la cual se esparcen
+    java.util.Random rand = new java.util.Random();
+
+    for (int i = 0; i < tombCount; i++) {
+        float x = rand.nextFloat() * areaSize - areaSize / 2f;
+        float z = rand.nextFloat() * areaSize - areaSize / 2f;
+        Vector3f pos = new Vector3f(x, 0, z);
+        createTomb(pos);
+        }
+    }
+    
+    
+    private void createTomb(Vector3f position) {
+    Node tombNode = new Node("Tomb_" + position.toString());
+    
+    Box tombBase = new Box(1.2f, 0.3f, 0.8f); 
+    Geometry tombBaseGeometry = new Geometry("TombBase", tombBase);
+    
+    // Material con textura de piedra
+    Material tombMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    Texture stoneTexture = assetManager.loadTexture("Textures/piedras_lapida.jpg");
+    stoneTexture.setWrap(Texture.WrapMode.Repeat);
+    tombMaterial.setTexture("DiffuseMap", stoneTexture);
+    tombMaterial.setBoolean("UseMaterialColors", true);
+    tombMaterial.setColor("Diffuse", ColorRGBA.Gray.mult(0.8f));
+    tombMaterial.setFloat("Shininess", 5f);
+    tombBaseGeometry.setMaterial(tombMaterial);
+    tombBaseGeometry.setLocalTranslation(0, 0, 0);
+    tombBase.scaleTextureCoordinates(new Vector2f(2f, 2f));
+    
+    // Lápida 
+    Box headstone = new Box(0.7f, 0.8f, 0.05f);
+    Geometry headstoneGeometry = new Geometry("Headstone", headstone);
+    Material headstoneMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    Texture headstoneTexture = assetManager.loadTexture("Textures/lapida_frontal.jpg");
+    headstoneTexture.setWrap(Texture.WrapMode.Repeat);
+    headstoneMaterial.setTexture("DiffuseMap", headstoneTexture);
+    headstoneMaterial.setColor("Diffuse", ColorRGBA.White.mult(0.9f));
+    headstoneMaterial.setFloat("Shininess", 10f);
+    headstoneGeometry.setMaterial(headstoneMaterial);
+    headstoneGeometry.setLocalTranslation(0, 0.8f, -0.85f); 
+    
+    
+    // Añadir todos los componentes al nodo
+    tombNode.attachChild(tombBaseGeometry);
+    tombNode.attachChild(headstoneGeometry);
+    
+    tombNode.setLocalTranslation(position);
+    
+    // Fisica
+    CollisionShape tombShape = CollisionShapeFactory.createMeshShape(tombNode);
+    RigidBodyControl tombPhysics = new RigidBodyControl(tombShape, 0);
+    tombNode.addControl(tombPhysics);
+    bulletAppState.getPhysicsSpace().add(tombPhysics);
+    
+    rootNode.attachChild(tombNode);
+    
+    
+    
+}
+    
 
     @Override
     public void simpleUpdate(float tpf) {
