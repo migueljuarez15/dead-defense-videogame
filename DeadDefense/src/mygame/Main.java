@@ -28,7 +28,8 @@ import com.jme3.texture.Texture;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
 
-    private Node enemyPath;
+    private Node[] enemyPaths;
+    private int pathCount = 3;
     private float spawnTimer = 0;
     private float spawnInterval = 5f;
     private BulletAppState bulletAppState;
@@ -72,7 +73,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         rootNode.addLight(ambient);
 
         createGround();
-        createPath();
+        createPaths();
         createPlayer();
 
         flyCam.setEnabled(true);
@@ -260,23 +261,51 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletAppState.getPhysicsSpace().add(groundControl);
     }
 
-    private void createPath() {
-        enemyPath = new Node("Path");
+    private void createPaths() {
+        enemyPaths = new Node[pathCount];
 
-        Vector3f[] points = {
-            new Vector3f(-10, 0, -10),
-            new Vector3f(-5, 0, 0),
-            new Vector3f(0, 0, 5),
-            new Vector3f(5, 0, 10),
-            new Vector3f(10, 0, 15),
+        // Definimos los puntos para cada camino
+        Vector3f[][] pathsPoints = {
+            // Camino 1 (original)
+            {
+                new Vector3f(-10, 0, -10),
+                new Vector3f(-5, 0, 0),
+                new Vector3f(0, 0, 5),
+                new Vector3f(5, 0, 10),
+                new Vector3f(10, 0, 15)
+            },
+            // Camino 2 (alternativo)
+            {
+                new Vector3f(-15, 0, 0),
+                new Vector3f(-10, 0, 5),
+                new Vector3f(-5, 0, 0),
+                new Vector3f(0, 0, -5),
+                new Vector3f(5, 0, 0)
+            },
+            // Camino 3 (circular)
+            {
+                new Vector3f(0, 0, -10),
+                new Vector3f(5, 0, -5),
+                new Vector3f(10, 0, 0),
+                new Vector3f(5, 0, 5),
+                new Vector3f(0, 0, 10)
+            }
         };
 
-        for (Vector3f point : points) {
-            Geometry marker = createMarker(point);
-            enemyPath.attachChild(marker);
-        }
+        // Creamos cada camino
+        for (int i = 0; i < pathCount; i++) {
+            enemyPaths[i] = new Node("Path_" + i);
 
-        rootNode.attachChild(enemyPath);
+            for (Vector3f point : pathsPoints[i]) {
+                Geometry marker = createMarker(point);
+                // Asignamos diferente color a cada camino
+                Material mat = marker.getMaterial();
+                mat.setColor("Diffuse", ColorRGBA.Blue.mult(i+1));
+                enemyPaths[i].attachChild(marker);
+            }
+
+            rootNode.attachChild(enemyPaths[i]);
+        }
     }
 
     private Geometry createMarker(Vector3f location) {
@@ -292,10 +321,14 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     private void spawnEnemy() {
+        // Elegir camino aleatorio (0, 1 o 2)
+        int pathIndex = FastMath.rand.nextInt(pathCount);
+        Node selectedPath = enemyPaths[pathIndex];
+        
         // Cargar el modelo del enemigo (debe estar convertido a .j3o)
         Spatial enemy = assetManager.loadModel("Models/Enemigos/skeleton.j3o");
         enemy.setName("Enemy");
-        enemy.setLocalTranslation(enemyPath.getChild(0).getLocalTranslation().clone());
+        enemy.setLocalTranslation(selectedPath.getChild(0).getLocalTranslation().clone()); //Eleccion del camino aleatorio
 
         // ✅ Añadir hitbox que se mueve con el enemigo
         CapsuleCollisionShape shape = new CapsuleCollisionShape(0.5f, 1f);
@@ -304,7 +337,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletAppState.getPhysicsSpace().add(ghostControl);
 
         // ✅ Añadir comportamiento
-        EnemigoControl control = new EnemigoControl(enemyPath);
+        EnemigoControl control = new EnemigoControl(selectedPath);
         enemy.addControl(control);
 
         rootNode.attachChild(enemy);
