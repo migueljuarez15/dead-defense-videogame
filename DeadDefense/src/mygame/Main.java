@@ -27,7 +27,8 @@ import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
-
+    
+    private Geometry player;
     private Node[] enemyPaths;
     private int pathCount = 3;
     private float spawnTimer = 0;
@@ -337,7 +338,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletAppState.getPhysicsSpace().add(ghostControl);
 
         // ✅ Añadir comportamiento
-        EnemigoControl control = new EnemigoControl(selectedPath);
+        EnemigoControl control = new EnemigoControl(player);
         enemy.addControl(control);
 
         rootNode.attachChild(enemy);
@@ -347,7 +348,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private void createPlayer() {
         // Cubo como jugador
         Box box = new Box(0.5f, 1f, 0.5f);
-        Geometry player = new Geometry("Player", box);
+        player = new Geometry("Player", box);
         Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
         mat.setBoolean("UseMaterialColors", true);
         mat.setColor("Diffuse", ColorRGBA.Blue);
