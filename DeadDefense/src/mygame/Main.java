@@ -169,67 +169,107 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     // Ajustar coordenadas de la textura
     sueloBox.scaleTextureCoordinates(new Vector2f(50, 50));
     suelo.setLocalTranslation(0, -0.1f, 0);
-    
     rootNode.attachChild(suelo);
 
-    
-    int tombCount = 25; // Cantidad de tumbas
-    float areaSize = 80f; // Área dentro de la cual se esparcen
-    java.util.Random rand = new java.util.Random();
+    // Posiciones definidas para las tumbas
+    Vector3f[] tombPositions = {
+        new Vector3f(-20, 0, 5),
+        new Vector3f(-22, 0, -9),
+        new Vector3f(-13, 0, 9),
+        new Vector3f(-7, 0, -10),
+        new Vector3f(20, 0, -15),
+        new Vector3f(12, 0, -4),
+        new Vector3f(18, 0, 12),
+        new Vector3f(-5, 0, 16),
+        new Vector3f(-3, 0, 11),
+    };
 
-    for (int i = 0; i < tombCount; i++) {
-        float x = rand.nextFloat() * areaSize - areaSize / 2f;
-        float z = rand.nextFloat() * areaSize - areaSize / 2f;
-        Vector3f pos = new Vector3f(x, 0, z);
-        createTomb(pos);
-        }
+    for (Vector3f pos : tombPositions) {
+        crearTumba(pos);
     }
     
+    Vector3f[] cruzPosicion = {
+        new Vector3f(-25, 0, 8),
+        new Vector3f(-10, 0, -22),
+        new Vector3f(-7, 0, 12),
+        new Vector3f(-1, 0, -20),
+        new Vector3f(30, 0, -8),
+        new Vector3f(23, 0, 15),
+        new Vector3f(33, 0, 17),
+        new Vector3f(-23, 0, 4),
+        new Vector3f(10, 0, 25),
+
+    };
+
+    for (Vector3f pos : cruzPosicion) {
+        crearCruz(pos);
+    }
+}
     
-    private void createTomb(Vector3f position) {
-    Node tombNode = new Node("Tomb_" + position.toString());
+    private void crearCruz(Vector3f posicion) {
+    // Barra vertical de la cruz
+    Box barraVertical = new Box(0.2f, 3f, 0.2f); 
+    Geometry barraVerticalGeo = new Geometry("Barra Vertical", barraVertical);
+    Material matCruz = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    matCruz.setColor("Diffuse", ColorRGBA.Gray);  // Color gris para la cruz
+    barraVerticalGeo.setMaterial(matCruz);
+    barraVerticalGeo.setLocalTranslation(posicion.add(new Vector3f(0, 1.5f, 0)));  
+    rootNode.attachChild(barraVerticalGeo);
+
+    // Barra horizontal de la cruz
+    Box barraHorizontal = new Box(1.2f, 0.2f, 0.2f); 
+    Geometry barraHorizontalGeo = new Geometry("Barra Horizontal", barraHorizontal);
+    barraHorizontalGeo.setMaterial(matCruz);
+    barraHorizontalGeo.setLocalTranslation(posicion.add(new Vector3f(0, 3, 0)));  
+    rootNode.attachChild(barraHorizontalGeo);
+}
+
+
+       
+    private void crearTumba(Vector3f position) {
+    Node tumbaNodo = new Node("Tomb_" + position.toString());
     
     Box tombBase = new Box(1.2f, 0.3f, 0.8f); 
-    Geometry tombBaseGeometry = new Geometry("TombBase", tombBase);
+    Geometry baseTumbaGeometria = new Geometry("TombBase", tombBase);
     
     // Material con textura de piedra
-    Material tombMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    Material tumbaMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
     Texture stoneTexture = assetManager.loadTexture("Textures/piedras_lapida.jpg");
     stoneTexture.setWrap(Texture.WrapMode.Repeat);
-    tombMaterial.setTexture("DiffuseMap", stoneTexture);
-    tombMaterial.setBoolean("UseMaterialColors", true);
-    tombMaterial.setColor("Diffuse", ColorRGBA.Gray.mult(0.8f));
-    tombMaterial.setFloat("Shininess", 5f);
-    tombBaseGeometry.setMaterial(tombMaterial);
-    tombBaseGeometry.setLocalTranslation(0, 0, 0);
+    tumbaMaterial.setTexture("DiffuseMap", stoneTexture);
+    tumbaMaterial.setBoolean("UseMaterialColors", true);
+    tumbaMaterial.setColor("Diffuse", ColorRGBA.Gray.mult(0.8f));
+    tumbaMaterial.setFloat("Shininess", 5f);
+    baseTumbaGeometria.setMaterial(tumbaMaterial);
+    baseTumbaGeometria.setLocalTranslation(0, 0, 0);
     tombBase.scaleTextureCoordinates(new Vector2f(2f, 2f));
     
-    // Lápida 
+    // Tumbas 
     Box headstone = new Box(0.7f, 0.8f, 0.05f);
-    Geometry headstoneGeometry = new Geometry("Headstone", headstone);
-    Material headstoneMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-    Texture headstoneTexture = assetManager.loadTexture("Textures/lapida_frontal.jpg");
-    headstoneTexture.setWrap(Texture.WrapMode.Repeat);
-    headstoneMaterial.setTexture("DiffuseMap", headstoneTexture);
-    headstoneMaterial.setColor("Diffuse", ColorRGBA.White.mult(0.9f));
-    headstoneMaterial.setFloat("Shininess", 10f);
-    headstoneGeometry.setMaterial(headstoneMaterial);
-    headstoneGeometry.setLocalTranslation(0, 0.8f, -0.85f); 
+    Geometry tumbaGeometria = new Geometry("Headstone", headstone);
+    Material tumbaMaterialT = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    Texture tumbaTextura = assetManager.loadTexture("Textures/lapida_frontal.jpg");
+    tumbaTextura.setWrap(Texture.WrapMode.Repeat);
+    tumbaMaterial.setTexture("DiffuseMap", tumbaTextura);
+    tumbaMaterial.setColor("Diffuse", ColorRGBA.White.mult(0.9f));
+    tumbaMaterial.setFloat("Shininess", 10f);
+    tumbaGeometria.setMaterial(tumbaMaterial);
+    tumbaGeometria.setLocalTranslation(0, 0.8f, -0.85f); 
     
     
     // Añadir todos los componentes al nodo
-    tombNode.attachChild(tombBaseGeometry);
-    tombNode.attachChild(headstoneGeometry);
+    tumbaNodo.attachChild(baseTumbaGeometria);
+    tumbaNodo.attachChild(tumbaGeometria);
     
-    tombNode.setLocalTranslation(position);
+    tumbaNodo.setLocalTranslation(position);
     
     // Fisica
-    CollisionShape tombShape = CollisionShapeFactory.createMeshShape(tombNode);
-    RigidBodyControl tombPhysics = new RigidBodyControl(tombShape, 0);
-    tombNode.addControl(tombPhysics);
-    bulletAppState.getPhysicsSpace().add(tombPhysics);
+    CollisionShape tumbaForma = CollisionShapeFactory.createMeshShape(tumbaNodo);
+    RigidBodyControl tumbaFisica = new RigidBodyControl(tumbaForma, 0);
+    tumbaNodo.addControl(tumbaFisica);
+    bulletAppState.getPhysicsSpace().add(tumbaFisica);
     
-    rootNode.attachChild(tombNode);
+    rootNode.attachChild(tumbaNodo);
     
     
     
