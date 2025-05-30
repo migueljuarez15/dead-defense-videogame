@@ -9,6 +9,7 @@ import com.jme3.scene.control.AbstractControl;
 import com.jme3.bullet.control.GhostControl;
 import com.jme3.math.Quaternion;
 
+
 public class EnemigoControl extends AbstractControl {
     
     // Variables mejoradas
@@ -89,6 +90,9 @@ public class EnemigoControl extends AbstractControl {
             ghost.setPhysicsLocation(spatial.getWorldTranslation());
         }
     }
+    
+    private Vector3f velocity = new Vector3f(); // Velocidad acumulada
+    
 
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp) {

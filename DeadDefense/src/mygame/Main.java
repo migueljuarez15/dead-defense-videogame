@@ -25,6 +25,7 @@ import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
+import com.jme3.util.SkyFactory;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
     
@@ -54,10 +55,13 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         app.setShowSettings(true); // Muestra el diálogo al iniciar
         app.start();
     }
+    
+    
 
     @Override
     public void simpleInitApp() {
      
+       
         // 🔴 Mueve esto arriba de todo
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
@@ -68,6 +72,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         sun.setDirection(new Vector3f(-0.5f, -1f, -0.5f).normalizeLocal());
         sun.setColor(ColorRGBA.White);
         rootNode.addLight(sun);
+       
 
         AmbientLight ambient = new AmbientLight();
         ambient.setColor(ColorRGBA.White.mult(0.3f));
@@ -89,6 +94,24 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         hitSound.setPositional(false);
         hitSound.setVolume(5f);
         rootNode.attachChild(hitSound);
+        
+        /*Texture west  = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
+        Texture east  = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
+        Texture north = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
+        Texture south = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
+        Texture up    = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
+        Texture down  = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
+
+        Spatial sky = SkyFactory.createSky(assetManager, west, east, north, south, up, down);
+        getRootNode().attachChild(sky);/*/
+        
+       
+        Spatial sky = SkyFactory.createSky(
+        assetManager,
+        "Textures/Cielo/render.dds",
+        SkyFactory.EnvMapType.CubeMap
+        );
+        rootNode.attachChild(sky);
         
         // Fuente del HUD
         BitmapFont font = assetManager.loadFont("Interface/Fonts/Default.fnt");
@@ -221,7 +244,10 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     Geometry barraHorizontalGeo = new Geometry("Barra Horizontal", barraHorizontal);
     barraHorizontalGeo.setMaterial(matCruz);
     barraHorizontalGeo.setLocalTranslation(posicion.add(new Vector3f(0, 3, 0)));  
+    
     rootNode.attachChild(barraHorizontalGeo);
+        
+    
 }
 
 
@@ -263,7 +289,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
     tumbaNodo.setLocalTranslation(position);
     
-    // Fisica
+    // Fisica tumba
     CollisionShape tumbaForma = CollisionShapeFactory.createMeshShape(tumbaNodo);
     RigidBodyControl tumbaFisica = new RigidBodyControl(tumbaForma, 0);
     tumbaNodo.addControl(tumbaFisica);
@@ -441,6 +467,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             }
         }
     };
+    
+    
     
     private PhysicsSpace getPhysicsSpace() {
         return bulletAppState.getPhysicsSpace();
