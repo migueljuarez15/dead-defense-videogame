@@ -365,9 +365,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
             for (Vector3f point : pathsPoints[i]) {
                 Geometry marker = createMarker(point);
-                // Asignamos diferente color a cada camino
-                Material mat = marker.getMaterial();
-                mat.setColor("Diffuse", ColorRGBA.Blue.mult(i+1));
+                
                 enemyPaths[i].attachChild(marker);
             }
 
