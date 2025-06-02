@@ -418,26 +418,35 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         // Elegir camino aleatorio (0, 1 o 2)
         int pathIndex = FastMath.rand.nextInt(pathCount);
         Node selectedPath = enemyPaths[pathIndex];
-        
-        // Cargar el modelo del enemigo (debe estar convertido a .j3o)
+
+        // Cargar el modelo del enemigo
         Spatial enemy = assetManager.loadModel("Models/Enemigo/skeleton.j3o");
         enemy.setLocalScale(1.5f);
         enemy.setName("Enemy");
-        enemy.setLocalTranslation(selectedPath.getChild(0).getLocalTranslation().clone()); //Eleccion del camino aleatorio
+        enemy.setLocalTranslation(selectedPath.getChild(0).getLocalTranslation().clone());
 
-        // ✅ Añadir hitbox que se mueve con el enemigo
+        // Hitbox
         CapsuleCollisionShape shape = new CapsuleCollisionShape(1.3f, 1.8f);
         GhostControl ghostControl = new GhostControl(shape);
         enemy.addControl(ghostControl);
         bulletAppState.getPhysicsSpace().add(ghostControl);
 
-        // ✅ Añadir comportamiento
-        EnemigoControl control = new EnemigoControl(player);
+        //Elegir objetivo aleatoriamente: jugador o torre
+        Spatial target;
+        if (FastMath.nextRandomFloat() < 0.5f) {
+            target = player;
+        } else {
+            target = torre; // Asegúrate de que "torre" sea accesible en esta clase
+        }
+
+        // Comportamiento con objetivo aleatorio
+        EnemigoControl control = new EnemigoControl(target);
         enemy.addControl(control);
 
         rootNode.attachChild(enemy);
         enemys.add(enemy);
     }
+
 
     private void createPlayer() {
         // Cargar el modelo
