@@ -1,6 +1,7 @@
 package mygame;
 
 import com.jme3.input.controls.*;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.control.AbstractControl;
@@ -30,6 +31,10 @@ public class JugadorControl extends AbstractControl implements ActionListener {
 
         spatial.move(walkDirection.mult(tpf * speed));
         cam.setLocation(spatial.getLocalTranslation().add(0, 2, 0));
+        
+        // === ROTAR el modelo para que mire en la dirección de la cámara ===
+        float yaw = cam.getRotation().toAngles(null)[1]; // Obtener rotación en Y
+        spatial.setLocalRotation(new Quaternion().fromAngles(0, yaw, 0));
     }
 
     @Override
