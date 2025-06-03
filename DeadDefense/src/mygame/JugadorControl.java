@@ -8,16 +8,39 @@ import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.Spatial;
 
 public class JugadorControl extends AbstractControl implements ActionListener {
-
-    private Camera cam;
+    private int vida = 100;
+    private boolean forward = false;
+    private boolean backward = false;
+    private boolean left = false;
+    private boolean right = false;
     private Vector3f walkDirection = new Vector3f();
-    private boolean left, right, forward, backward;
-    private float speed = 5f;
+    private float speed = 5.0f;
+    private Camera cam;
+    private boolean estaMuerto = false;
 
     public JugadorControl(Camera cam) {
         this.cam = cam;
     }
 
+    public int getVida() {
+        return vida;
+    }
+
+    public void recibirDaño(int cantidad) {
+        if (!estaMuerto) {
+            vida -= cantidad;
+            if (vida <= 0) {
+                vida = 0;
+                estaMuerto = true;
+                // Aquí podrías manejar la muerte del jugador
+            }
+        }
+    }
+    
+    public boolean estaMuerto() {
+        return estaMuerto;
+    }
+    
     @Override
     protected void controlUpdate(float tpf) {
         Vector3f camDir = cam.getDirection().clone().setY(0).normalizeLocal();
@@ -31,7 +54,7 @@ public class JugadorControl extends AbstractControl implements ActionListener {
 
         spatial.move(walkDirection.mult(tpf * speed));
         cam.setLocation(spatial.getLocalTranslation().add(0, 2, 0));
-        
+
         // === ROTAR el modelo para que mire en la dirección de la cámara ===
         float yaw = cam.getRotation().toAngles(null)[1]; // Obtener rotación en Y
         spatial.setLocalRotation(new Quaternion().fromAngles(0, yaw, 0));

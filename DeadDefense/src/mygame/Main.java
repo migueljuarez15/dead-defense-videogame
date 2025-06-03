@@ -45,6 +45,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private Node torre;
     private List<Spatial> enemys = new ArrayList<>();
     
+    private int puntos = 0;
+    private int puntosParaGanar = 100; // Meta para ganar el juego
+    private float spawnIntervalBase = 5f; 
+    private float spawnIntervalMin = 1f; 
+    private BitmapText puntosText; 
+    
     public static void main(String[] args) {
         Main app = new Main();
         // Crear configuración personalizada
@@ -101,16 +107,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         rootNode.attachChild(towerHit);
         
         initAmbientSound();
-        
-        /*Texture west  = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
-        Texture east  = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
-        Texture north = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
-        Texture south = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
-        Texture up    = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
-        Texture down  = assetManager.loadTexture("Textures/Cielo/renderprueba.dds");
-
-        Spatial sky = SkyFactory.createSky(assetManager, west, east, north, south, up, down);
-        getRootNode().attachChild(sky);/*/
+       
        
         Spatial sky = SkyFactory.createSky(
         assetManager,
@@ -118,9 +115,14 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         SkyFactory.EnvMapType.CubeMap
         );
         rootNode.attachChild(sky);
-        
-        // Fuente del HUD
+
         BitmapFont font = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        puntosText = new BitmapText(font, false);
+        puntosText.setSize(font.getCharSet().getRenderedSize());
+        puntosText.setLocalTranslation(10, settings.getHeight() - 90, 0);
+        puntosText.setText("Puntos: 0");
+        guiNode.attachChild(puntosText);    
+        
 
         // Mira centrada
         BitmapText crosshair = new BitmapText(font, false);
@@ -189,6 +191,40 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         towerHealthT.setSize(guiFont.getCharSet().getRenderedSize());
         towerHealthT.setLocalTranslation(10, settings.getHeight() - 70, 0);
         guiNode.attachChild(towerHealthT);
+    }
+    
+    public void addPuntos(int cantidad) {
+        puntos += cantidad;
+        puntosText.setText("Puntos: " + puntos);
+    
+        if (puntos >= puntosParaGanar) {
+            mostrarMensajeVictoria();
+        }
+    
+        ajustarDificultad();
+    }
+    
+    private void mostrarMensajeVictoria() {
+        BitmapText victoriaText = new BitmapText(guiFont, false);
+        victoriaText.setSize(60);
+        victoriaText.setText("¡VICTORIA!");
+        victoriaText.setColor(ColorRGBA.Green);
+        victoriaText.setLocalTranslation(
+            settings.getWidth() / 2 - victoriaText.getLineWidth() / 2,
+            settings.getHeight() / 2,
+            0);
+        guiNode.attachChild(victoriaText);
+    
+        
+    }
+    
+    private void ajustarDificultad() {
+        // Reducir el intervalo de aparición proporcional a los puntos
+        float progresion = (float) puntos / puntosParaGanar;
+        spawnInterval = spawnIntervalBase - (spawnIntervalBase - spawnIntervalMin) * progresion;
+    
+        // Asegurarnos de no ir por debajo del mínimo
+        spawnInterval = Math.max(spawnInterval, spawnIntervalMin);
     }
     
     private void createCemeteryStructures() {
@@ -520,6 +556,23 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         } else if ("Enemy".equals(a.getName()) && "Bullet".equals(b.getName())) {
             bala = b;
             enemigo = a;
+        }
+
+        if (bala != null && enemigo != null) {
+            EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
+            if (ec != null && !ec.isDead()) {
+                ec.markDead();
+                hitSound.playInstance();
+                
+                // Añadir puntos por eliminar enemigo
+                addPuntos(10); // 10 puntos por enemigo
+                
+                enemigo.rotate(-FastMath.HALF_PI, 0, 0);
+                enemigo.addControl(new RemoverDespuesControl(2f, bulletAppState));
+            }
+            
+            getPhysicsSpace().remove(bala.getControl(RigidBodyControl.class));
+            bala.removeFromParent();
         }
 
         if (bala != null && enemigo != null) {
