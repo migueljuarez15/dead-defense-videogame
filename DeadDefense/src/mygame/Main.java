@@ -200,8 +200,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         torre = (Node) assetManager.loadModel("Models/Torre/tower.j3o");
         torre.setLocalScale(5f);
         torre.setLocalTranslation(new Vector3f(0, 0, 26));
+        CollisionShape torreShape = CollisionShapeFactory.createMeshShape(torre);
+        RigidBodyControl torreFisica = new RigidBodyControl(torreShape, 0); // masa 0 = estático
         torre.addControl(new TorreControl());
+        torre.addControl(torreFisica);
         rootNode.attachChild(torre);
+        bulletAppState.getPhysicsSpace().add(torreFisica);
 
         // HUD para la vida de la torre
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
@@ -557,9 +561,17 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         player.setLocalScale(0.7f);
         player.setLocalTranslation(0, 1, 0);
 
-        JugadorControl control = new JugadorControl(cam);
+        // Crear la forma de colisión para el jugador
+        CapsuleCollisionShape capsule = new CapsuleCollisionShape(0.9f, 1.8f);
+        RigidBodyControl playerPhysics = new RigidBodyControl(capsule, 100f); // masa del jugador
+
+        player.addControl(playerPhysics);
+
+        JugadorControl control = new JugadorControl(cam, playerPhysics);
         player.addControl(control);
+
         rootNode.attachChild(player);
+        bulletAppState.getPhysicsSpace().add(playerPhysics); // Agrega el cuerpo físico al mundo
 
         inputManager.addMapping("Forward", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("Backward", new KeyTrigger(KeyInput.KEY_S));
