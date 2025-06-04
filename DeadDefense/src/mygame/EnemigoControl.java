@@ -8,13 +8,14 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.bullet.control.GhostControl;
 import com.jme3.math.Quaternion;
+import com.jme3.math.FastMath; 
 
 
 public class EnemigoControl extends AbstractControl {
     
     // Variables mejoradas
     private int currentWaypoint = 0;  // Punto actual en el camino
-    private float speed = 2.0f;       // Velocidad base
+    private float speed = 2.2f;       // Velocidad base
     private boolean isDead = false;   // Estado del enemigo
     private float deathTimer = 0f;    // Temporizador para eliminación
     private float rotationSpeed = 4f; // Velocidad de rotación suavizada
@@ -22,12 +23,39 @@ public class EnemigoControl extends AbstractControl {
     
     // Nueva variable para variación de velocidad
     private float speedVariation = 0f; 
+    
+    private float speedBase = 2.2f;       // Velocidad base inicial
+    private float speedMax = 4.5f;        // Velocidad máxima posible
+    private float currentSpeed;           // Velocidad actual
+    
 
-    public EnemigoControl(Spatial target) {
+     private final Main mainGame; // Referencia al juego principal
+    
+    // Modificar el constructor para recibir la instancia de Main
+    public EnemigoControl(Spatial target, Main mainGame) {
         this.target = target;
-        this.speedVariation = (float) (Math.random() * 0.8f - 0.4f); // ±0.4
+        this.mainGame = mainGame;
+        this.speedVariation = (float) (Math.random() * 0.8f - 0.4f);
+        calcularVelocidadProgresiva();
     }
-
+    
+    private void calcularVelocidadProgresiva() {
+        if (mainGame == null) {
+            this.currentSpeed = speedBase + speedVariation;
+            return;
+        }
+        
+        // Calcular progresión de manera segura
+        float progresion = Math.min(1f, Math.max(0f, 
+            (float)mainGame.puntos / mainGame.puntosParaGanar));
+        
+        this.currentSpeed = speedBase + (speedMax - speedBase) * progresion;
+        this.currentSpeed += speedVariation;
+    }
+    
+    
+     
+    
     @Override
     protected void controlUpdate(float tpf) {
          if (isDead) {
@@ -64,6 +92,8 @@ public class EnemigoControl extends AbstractControl {
             spatial.getLocalRotation().slerp(targetRotation, tpf * rotationSpeed);
             spatial.setLocalRotation(spatial.getLocalRotation());
         }
+        
+        spatial.move(direction.normalize().mult(currentSpeed * tpf));
 
         // Movimiento hacia el jugador
         float currentSpeed = speed + speedVariation;

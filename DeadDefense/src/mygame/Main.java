@@ -30,8 +30,14 @@ import com.jme3.util.SkyFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import com.jme3.scene.control.AbstractControl; 
+import com.jme3.renderer.RenderManager;       
+import com.jme3.renderer.ViewPort;            
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
+
+    
+   
     private Spatial player;
     private Node[] enemyPaths;
     private int pathCount = 3;
@@ -45,11 +51,17 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private Node torre;
     private List<Spatial> enemys = new ArrayList<>();
     
-    private int puntos = 0;
-    private int puntosParaGanar = 100; // Meta para ganar el juego
-    private float spawnIntervalBase = 5f; 
-    private float spawnIntervalMin = 1f; 
+    public int puntos = 0;
+    protected int puntosParaGanar = 300; // Meta para ganar el juego
+    private float spawnIntervalBase = 4f; 
+    private float spawnIntervalMin = 0.5f; 
     private BitmapText puntosText; 
+    private int enemigosPorOleada = 1;
+    private int maxEnemigosEnEscena = 5; // Máximo de enemigos permitidos en pantalla
+    private int enemigosEnEscena = 0;     
+    private int enemigosPorOleadaBase = 2; 
+    private int enemigosPorOleadaMax = 5;  
+    private boolean juegoGanado = false;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -66,12 +78,18 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         app.start();
     }
     
+  
+    
     @Override
     public void simpleInitApp() {
         // 🔴 Mueve esto arriba de todo
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         bulletAppState.getPhysicsSpace().addCollisionListener(this);
+        
+        // En simpleInitApp(), después de crear bulletAppState:
+        bulletAppState.getPhysicsSpace().setMaxSubSteps(2); 
+        bulletAppState.getPhysicsSpace().setAccuracy(0.016f); 
 
         // ✅ Ahora puedes usar bulletAppState sin error
         DirectionalLight sun = new DirectionalLight();
@@ -193,6 +211,9 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         guiNode.attachChild(towerHealthT);
     }
     
+    
+    
+  
     public void addPuntos(int cantidad) {
         puntos += cantidad;
         puntosText.setText("Puntos: " + puntos);
@@ -205,6 +226,18 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
     
     private void mostrarMensajeVictoria() {
+        juegoGanado = true;
+    
+        // Eliminar todos los enemigos existentes
+        Iterator<Spatial> iterator = enemys.iterator();
+        while (iterator.hasNext()) {
+            Spatial enemigo = iterator.next();
+            rootNode.detachChild(enemigo);
+            iterator.remove();
+            enemigosEnEscena--;
+        }
+    
+        // Mostrar mensaje
         BitmapText victoriaText = new BitmapText(guiFont, false);
         victoriaText.setSize(60);
         victoriaText.setText("¡VICTORIA!");
@@ -215,17 +248,25 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             0);
         guiNode.attachChild(victoriaText);
     
-        
+        // Detener sonido ambiente
+        ambientSound.stop();
     }
+       
+    
     
     private void ajustarDificultad() {
-        // Reducir el intervalo de aparición proporcional a los puntos
         float progresion = (float) puntos / puntosParaGanar;
-        spawnInterval = spawnIntervalBase - (spawnIntervalBase - spawnIntervalMin) * progresion;
     
-        // Asegurarnos de no ir por debajo del mínimo
+        spawnInterval = spawnIntervalBase - (spawnIntervalBase - spawnIntervalMin) * (progresion * 1.2f);
         spawnInterval = Math.max(spawnInterval, spawnIntervalMin);
+    
+        // Aumento más rápido de enemigos por oleada
+        enemigosPorOleada = enemigosPorOleadaBase + (int)(progresion * (enemigosPorOleadaMax - enemigosPorOleadaBase));
+    
+        // Asegurarse de que no exceda el máximo
+        enemigosPorOleada = Math.min(enemigosPorOleada, enemigosPorOleadaMax);
     }
+    
     
     private void createCemeteryStructures() {
         // Crear suelo del cementerio
@@ -347,6 +388,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
     @Override
     public void simpleUpdate(float tpf) {
+        if (juegoGanado) return;  // No hacer nada si el juego está ganado
+    
         spawnTimer += tpf;
         if (spawnTimer > spawnInterval) {
             spawnTimer = 0;
@@ -372,8 +415,11 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
                 // Eliminar enemigo tras impactar
                 rootNode.detachChild(enemigo);
                 iterator.remove();
+                enemigosEnEscena--; // Decrementar contador
+
             }
         }
+        
     }
 
     private void createGround() {
@@ -451,36 +497,56 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     private void spawnEnemy() {
-        // Elegir camino aleatorio (0, 1 o 2)
+    if (juegoGanado) return;  // No spawnear si el juego está ganado
+    // Verificar si podemos spawnear más enemigos
+    if (enemigosEnEscena >= maxEnemigosEnEscena) {
+        return; // No spawnear si ya hay demasiados enemigos
+    }
+
+    for(int i = 0; i < enemigosPorOleada; i++) {
+        // Verificar nuevamente por cada enemigo de la oleada
+        if (enemigosEnEscena >= maxEnemigosEnEscena) {
+            break;
+        }
+
         int pathIndex = FastMath.rand.nextInt(pathCount);
         Node selectedPath = enemyPaths[pathIndex];
 
-        // Cargar el modelo del enemigo
         Spatial enemy = assetManager.loadModel("Models/Enemigo/skeleton.j3o");
         enemy.setLocalScale(1.5f);
         enemy.setName("Enemy");
         enemy.setLocalTranslation(selectedPath.getChild(0).getLocalTranslation().clone());
 
-        // Hitbox
         CapsuleCollisionShape shape = new CapsuleCollisionShape(1.3f, 1.8f);
         GhostControl ghostControl = new GhostControl(shape);
         enemy.addControl(ghostControl);
         bulletAppState.getPhysicsSpace().add(ghostControl);
 
-        //Elegir objetivo aleatoriamente: jugador o torre
-        Spatial target;
-        if (FastMath.nextRandomFloat() < 0.5f) {
-            target = player;
-        } else {
-            target = torre; // Asegúrate de que "torre" sea accesible en esta clase
-        }
-
-        // Comportamiento con objetivo aleatorio
-        EnemigoControl control = new EnemigoControl(target);
+        Spatial target = FastMath.nextRandomFloat() < 0.5f ? player : torre;
+        
+        EnemigoControl control = new EnemigoControl(target, this);
         enemy.addControl(control);
 
-        rootNode.attachChild(enemy);
-        enemys.add(enemy);
+        // Añadir listener para cuando el enemigo muera
+        enemy.addControl(new AbstractControl() {
+            @Override
+            protected void controlUpdate(float tpf) {}
+            
+            @Override
+            protected void controlRender(RenderManager rm, ViewPort vp) {}
+            
+            @Override
+            public void setSpatial(Spatial spatial) {
+                 super.setSpatial(spatial);
+                    if (spatial != null) {
+                        enemigosEnEscena++; // Incrementar al crearse
+                    }
+                }
+            });
+
+            rootNode.attachChild(enemy);
+            enemys.add(enemy);
+        }
     }
 
 
@@ -541,6 +607,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     public void collision(PhysicsCollisionEvent event) {
+        if (juegoGanado) return;  
         Spatial a = event.getNodeA();
         Spatial b = event.getNodeB();
         
@@ -560,17 +627,18 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
         if (bala != null && enemigo != null) {
             EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
-            if (ec != null && !ec.isDead()) {
-                ec.markDead();
-                hitSound.playInstance();
-                
-                // Añadir puntos por eliminar enemigo
-                addPuntos(10); // 10 puntos por enemigo
-                
-                enemigo.rotate(-FastMath.HALF_PI, 0, 0);
-                enemigo.addControl(new RemoverDespuesControl(2f, bulletAppState));
-            }
-            
+        if (ec != null && !ec.isDead()) {
+            ec.markDead();
+            hitSound.playInstance();
+        
+            // Decrementar contador cuando muere
+            enemigosEnEscena--;
+        
+            addPuntos(10);
+            enemigo.rotate(-FastMath.HALF_PI, 0, 0);
+            enemigo.addControl(new RemoverDespuesControl(2f, bulletAppState));
+        }
+    
             getPhysicsSpace().remove(bala.getControl(RigidBodyControl.class));
             bala.removeFromParent();
         }
