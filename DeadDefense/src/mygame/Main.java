@@ -32,7 +32,10 @@ import java.util.Iterator;
 import java.util.List;
 import com.jme3.scene.control.AbstractControl; 
 import com.jme3.renderer.RenderManager;       
-import com.jme3.renderer.ViewPort;            
+import com.jme3.renderer.ViewPort;        
+import com.jme3.effect.ParticleEmitter;
+import com.jme3.effect.ParticleMesh;
+import com.jme3.effect.shapes.EmitterSphereShape;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
 
@@ -78,7 +81,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         app.start();
     }
     
-  
+    private ParticleEmitter rainEmitter;
     
     @Override
     public void simpleInitApp() {
@@ -213,7 +216,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         towerHealthT.setSize(guiFont.getCharSet().getRenderedSize());
         towerHealthT.setLocalTranslation(10, settings.getHeight() - 70, 0);
         guiNode.attachChild(towerHealthT);
+        
+         crearEfectoLluvia();
+        
     }
+    
+    
     
     
     
@@ -269,6 +277,32 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
         // Asegurarse de que no exceda el máximo
         enemigosPorOleada = Math.min(enemigosPorOleada, enemigosPorOleadaMax);
+    }
+    
+    
+    
+    private void crearEfectoLluvia() {
+        rainEmitter = new ParticleEmitter("Rain", ParticleMesh.Type.Triangle, 5000);
+        Material rainMat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
+        rainMat.setTexture("Texture", assetManager.loadTexture("Textures/rain3.png"));
+        rainEmitter.setMaterial(rainMat);
+
+        rainEmitter.setShape(new EmitterSphereShape(Vector3f.ZERO, 50f));
+        rainEmitter.setLocalTranslation(0, 30, 0); 
+
+        rainEmitter.setStartSize(0.1f);
+        rainEmitter.setEndSize(0.1f);
+        rainEmitter.setStartColor(ColorRGBA.White);
+        rainEmitter.setEndColor(new ColorRGBA(0.8f, 0.8f, 1f, 0.5f));
+
+        rainEmitter.setGravity(0, -10, 0);
+        rainEmitter.setLowLife(1.5f);
+        rainEmitter.setHighLife(2f);
+        rainEmitter.setParticlesPerSec(1000);
+        rainEmitter.getParticleInfluencer().setInitialVelocity(new Vector3f(0, -15, 0));
+        rainEmitter.getParticleInfluencer().setVelocityVariation(0.3f);
+
+        rootNode.attachChild(rainEmitter);
     }
     
     
