@@ -62,6 +62,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private int enemigosPorOleadaBase = 2; 
     private int enemigosPorOleadaMax = 5;  
     private boolean juegoGanado = false;
+    private boolean juegoPerdido = false;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -77,8 +78,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         app.setShowSettings(true); // Muestra el diálogo al iniciar
         app.start();
     }
-    
-  
     
     @Override
     public void simpleInitApp() {
@@ -110,7 +109,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         inputManager.setCursorVisible(false);
 
         inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
-        inputManager.addListener(actionListener, "Shoot");
+        inputManager.addListener(actionListenerShoot, "Shoot");
 
         hitSound = new AudioNode(assetManager, "Sounds/hitEnemy.wav", AudioData.DataType.Buffer);
         hitSound.setLooping(false);
@@ -126,7 +125,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         
         initAmbientSound();
        
-       
         Spatial sky = SkyFactory.createSky(
         assetManager,
         "Textures/Cielo/render.dds",
@@ -140,7 +138,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         puntosText.setLocalTranslation(10, settings.getHeight() - 90, 0);
         puntosText.setText("Puntos: 0");
         guiNode.attachChild(puntosText);    
-        
 
         // Mira centrada
         BitmapText crosshair = new BitmapText(font, false);
@@ -213,11 +210,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         towerHealthT.setSize(guiFont.getCharSet().getRenderedSize());
         towerHealthT.setLocalTranslation(10, settings.getHeight() - 70, 0);
         guiNode.attachChild(towerHealthT);
+        
+        // Mapeo de teclas para reiniciar
+        inputManager.addMapping("RestartGame", new KeyTrigger(KeyInput.KEY_R));
+        inputManager.addListener(actionListenerRestart, "RestartGame");
     }
     
-    
-    
-  
     public void addPuntos(int cantidad) {
         puntos += cantidad;
         puntosText.setText("Puntos: " + puntos);
@@ -241,7 +239,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             enemigosEnEscena--;
         }
     
-        // Mostrar mensaje
+        // Mostrar mensaje de Victoria
         BitmapText victoriaText = new BitmapText(guiFont, false);
         victoriaText.setSize(60);
         victoriaText.setText("¡VICTORIA!");
@@ -251,13 +249,28 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             settings.getHeight() / 2,
             0);
         guiNode.attachChild(victoriaText);
+        
+        // Mostrar mensaje de Reinicio
+        BitmapText restartText = new BitmapText(guiFont, false);
+        restartText.setSize(20);
+        restartText.setText("¡Presiona 'R' para reiniciar el juego!");
+        restartText.setColor(ColorRGBA.White);
+        restartText.setLocalTranslation(
+            settings.getWidth() - restartText.getLineWidth(),
+            settings.getHeight(),
+            0);
+        guiNode.attachChild(restartText);
     
         // Detener sonido ambiente
         ambientSound.stop();
+        
+        // No poder moverse
+        inputManager.deleteMapping("Forward");
+        inputManager.deleteMapping("Backward");
+        inputManager.deleteMapping("Left");
+        inputManager.deleteMapping("Right");
     }
-       
-    
-    
+
     private void ajustarDificultad() {
         float progresion = (float) puntos / puntosParaGanar;
     
@@ -389,8 +402,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
         rootNode.attachChild(tumbaNodo);
     }
-    
-    private boolean juegoPerdido = false;
 
     // Método para manejar la derrota
     private void mostrarMensajeDerrota() {
@@ -405,56 +416,73 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             enemigosEnEscena--;
         }
 
-    // Mostrar mensaje de derrota
-    BitmapText derrotaText = new BitmapText(guiFont, false);
-    derrotaText.setSize(60);
-    derrotaText.setText("¡DERROTA!");
-    derrotaText.setColor(ColorRGBA.Red);
-    derrotaText.setLocalTranslation(
-        settings.getWidth() / 2 - derrotaText.getLineWidth() / 2,
-        settings.getHeight() / 2,
-        0);
-    guiNode.attachChild(derrotaText);
+        // Mostrar mensaje de derrota
+        BitmapText derrotaText = new BitmapText(guiFont, false);
+        derrotaText.setSize(60);
+        derrotaText.setText("¡DERROTA!");
+        derrotaText.setColor(ColorRGBA.Red);
+        derrotaText.setLocalTranslation(
+            settings.getWidth() / 2 - derrotaText.getLineWidth() / 2,
+            settings.getHeight() / 2,
+            0);
+        guiNode.attachChild(derrotaText);
 
+        // Mostrar mensaje de Reinicio
+        BitmapText restartText = new BitmapText(guiFont, false);
+        restartText.setSize(20);
+        restartText.setText("¡Presiona 'R' para reiniciar el juego!");
+        restartText.setColor(ColorRGBA.White);
+        restartText.setLocalTranslation(
+            settings.getWidth() - restartText.getLineWidth(),
+            settings.getHeight(),
+            0);
+        guiNode.attachChild(restartText);
+    
         // Detener sonido ambiente
         ambientSound.stop();
+        
+        // No poder moverse
+        inputManager.deleteMapping("Forward");
+        inputManager.deleteMapping("Backward");
+        inputManager.deleteMapping("Left");
+        inputManager.deleteMapping("Right");
     }
 
     @Override
     public void simpleUpdate(float tpf) {
         if (juegoGanado || juegoPerdido) return;
 
-    // Verificar estado de la torre
-        TorreControl tc = torre.getControl(TorreControl.class);
-        if (tc != null && tc.getVida() <= 0 && !juegoPerdido) {
-            tc.destruirTorre();
-            mostrarMensajeDerrota();
-            return;
+        // Verificar estado de la torre
+            TorreControl tc = torre.getControl(TorreControl.class);
+            if (tc != null && tc.getVida() <= 0 && !juegoPerdido) {
+                tc.destruirTorre();
+                mostrarMensajeDerrota();
+                return;
+            }
+
+        spawnTimer += tpf;
+        if (spawnTimer > spawnInterval) {
+            spawnTimer = 0;
+            spawnEnemy();
+        }
+    
+        // Actualizar texto HUD con la vida de la torre
+        if (tc != null) {
+            towerHealthT.setText("Vida Torre: " + tc.getVida());
         }
 
-    spawnTimer += tpf;
-    if (spawnTimer > spawnInterval) {
-        spawnTimer = 0;
-        spawnEnemy();
-    }
-    
-    // Actualizar texto HUD con la vida de la torre
-    if (tc != null) {
-        towerHealthT.setText("Vida Torre: " + tc.getVida());
-    }
-
-    // Detectar colisión entre enemigos y la torre
-    Iterator<Spatial> iterator = enemys.iterator();
-    while (iterator.hasNext()) {
-        Spatial enemigo = iterator.next();
-        if (enemigo.getWorldTranslation().distance(torre.getWorldTranslation()) < 2f) {
-            if (tc != null) {
-                tc.recibirDanno(10);
-                towerHit.playInstance();
-            }
-            rootNode.detachChild(enemigo);
-            iterator.remove();
-            enemigosEnEscena--;
+        // Detectar colisión entre enemigos y la torre
+        Iterator<Spatial> iterator = enemys.iterator();
+        while (iterator.hasNext()) {
+            Spatial enemigo = iterator.next();
+            if (enemigo.getWorldTranslation().distance(torre.getWorldTranslation()) < 2f) {
+                if (tc != null) {
+                    tc.recibirDanno(10);
+                    towerHit.playInstance();
+                }
+                rootNode.detachChild(enemigo);
+                iterator.remove();
+                enemigosEnEscena--;
             }
         }
     }
@@ -639,10 +667,18 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletsText.setText("Balas disparadas: " + bulletsFired);
     }
 
-    private ActionListener actionListener = new ActionListener() {
+    private ActionListener actionListenerShoot = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("Shoot") && isPressed) {
                 shoot();
+            }
+        }
+    };
+    
+    private ActionListener actionListenerRestart = new ActionListener() {
+	public void onAction(String name, boolean isPressed, float tpf) {
+            if (name.equals("RestartGame") && isPressed && (juegoGanado || juegoPerdido)) {
+                reiniciarJuego();
             }
         }
     };
@@ -761,5 +797,25 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         ambientSound.setVolume(0.5f);             // Ajusta volumen según prefieras
         rootNode.attachChild(ambientSound);       // Adjuntar al nodo raíz
         ambientSound.play();                      // Iniciar reproducción
+    }
+    
+    private void reiniciarJuego() {
+	juegoGanado = false;
+	juegoPerdido = false;
+        puntos = 0;
+        enemigosEnEscena = 0;
+        bulletsFired = 0;
+        playerHealth = 100;
+        torre = null;
+
+        // Eliminar todo del rootNode y guiNode
+        rootNode.detachAllChildren();
+        guiNode.detachAllChildren();
+        enemys.clear();
+        inputManager.deleteMapping("Shoot");
+        inputManager.deleteMapping("RestartGame");
+
+        // Volver a cargar escena, jugador, torre, enemigos, HUD, sonido, etc.
+        simpleInitApp();
     }
 }
