@@ -389,41 +389,74 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
         rootNode.attachChild(tumbaNodo);
     }
-
-    @Override
-    public void simpleUpdate(float tpf) {
-        if (juegoGanado) return;  // No hacer nada si el juego está ganado
     
-        spawnTimer += tpf;
-        if (spawnTimer > spawnInterval) {
-            spawnTimer = 0;
-            spawnEnemy();
-        }
-        
-        // Actualizar texto HUD con la vida de la torre
-        TorreControl tc = torre.getControl(TorreControl.class);
-        if (tc != null) {
-            towerHealthT.setText("Vida Torre: " + tc.getVida());
-        }
+    private boolean juegoPerdido = false;
 
-        // Detectar colisión entre enemigos y la torre
+    // Método para manejar la derrota
+    private void mostrarMensajeDerrota() {
+        juegoPerdido = true;
+
+        // Eliminar todos los enemigos existentes
         Iterator<Spatial> iterator = enemys.iterator();
         while (iterator.hasNext()) {
             Spatial enemigo = iterator.next();
-            if (enemigo.getWorldTranslation().distance(torre.getWorldTranslation()) < 2f) {
-                if (tc != null) {
-                    tc.recibirDanno(10);
-                    //SONIDO TORRE
-                    towerHit.playInstance();
-                }
-                // Eliminar enemigo tras impactar
-                rootNode.detachChild(enemigo);
-                iterator.remove();
-                enemigosEnEscena--; // Decrementar contador
+            rootNode.detachChild(enemigo);
+            iterator.remove();
+            enemigosEnEscena--;
+        }
 
+    // Mostrar mensaje de derrota
+    BitmapText derrotaText = new BitmapText(guiFont, false);
+    derrotaText.setSize(60);
+    derrotaText.setText("¡DERROTA!");
+    derrotaText.setColor(ColorRGBA.Red);
+    derrotaText.setLocalTranslation(
+        settings.getWidth() / 2 - derrotaText.getLineWidth() / 2,
+        settings.getHeight() / 2,
+        0);
+    guiNode.attachChild(derrotaText);
+
+        // Detener sonido ambiente
+        ambientSound.stop();
+    }
+
+    @Override
+    public void simpleUpdate(float tpf) {
+        if (juegoGanado || juegoPerdido) return;
+
+    // Verificar estado de la torre
+        TorreControl tc = torre.getControl(TorreControl.class);
+        if (tc != null && tc.getVida() <= 0 && !juegoPerdido) {
+            tc.destruirTorre();
+            mostrarMensajeDerrota();
+            return;
+        }
+
+    spawnTimer += tpf;
+    if (spawnTimer > spawnInterval) {
+        spawnTimer = 0;
+        spawnEnemy();
+    }
+    
+    // Actualizar texto HUD con la vida de la torre
+    if (tc != null) {
+        towerHealthT.setText("Vida Torre: " + tc.getVida());
+    }
+
+    // Detectar colisión entre enemigos y la torre
+    Iterator<Spatial> iterator = enemys.iterator();
+    while (iterator.hasNext()) {
+        Spatial enemigo = iterator.next();
+        if (enemigo.getWorldTranslation().distance(torre.getWorldTranslation()) < 2f) {
+            if (tc != null) {
+                tc.recibirDanno(10);
+                towerHit.playInstance();
+            }
+            rootNode.detachChild(enemigo);
+            iterator.remove();
+            enemigosEnEscena--;
             }
         }
-        
     }
 
     private void createGround() {
@@ -501,7 +534,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     private void spawnEnemy() {
-    if (juegoGanado) return;  // No spawnear si el juego está ganado
+    if (juegoGanado || juegoPerdido) return;  // No spawnear si el juego está ganado
     // Verificar si podemos spawnear más enemigos
     if (enemigosEnEscena >= maxEnemigosEnEscena) {
         return; // No spawnear si ya hay demasiados enemigos

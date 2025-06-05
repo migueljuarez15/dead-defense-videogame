@@ -25,7 +25,7 @@ public class EnemigoControl extends AbstractControl {
     private float speedVariation = 0f; 
     
     private float speedBase = 2.2f;       // Velocidad base inicial
-    private float speedMax = 4.5f;        // Velocidad máxima posible
+    private float speedMax = 4.0f;        // Velocidad máxima posible
     private float currentSpeed;           // Velocidad actual
     
 

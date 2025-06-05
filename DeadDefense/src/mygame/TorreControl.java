@@ -20,11 +20,10 @@ public class TorreControl extends AbstractControl {
         }
     }
 
-    private void destruirTorre() {
+    public void destruirTorre() {
         destruida = true;
         System.out.println("¡La torre ha sido destruida!");
-        // Aquí puedes poner animaciones o acciones de final del juego
-        spatial.removeFromParent(); // opcional: eliminar torre del juego
+        spatial.removeFromParent(); // eliminar torre del juego
     }
 
     public int getVida() {
