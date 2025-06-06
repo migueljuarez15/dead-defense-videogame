@@ -27,7 +27,7 @@ public class JugadorControl extends AbstractControl implements ActionListener {
         return vida;
     }
 
-    public void recibirDaño(int cantidad) {
+    public void recibirDanno(int cantidad) {
         if (!estaMuerto) {
             vida -= cantidad;
             if (vida <= 0) {

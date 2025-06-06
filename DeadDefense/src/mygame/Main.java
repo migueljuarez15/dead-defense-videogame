@@ -38,16 +38,13 @@ import com.jme3.effect.ParticleMesh;
 import com.jme3.effect.shapes.EmitterSphereShape;
 
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
-
-    
-   
     private Spatial player;
     private Node[] enemyPaths;
     private int pathCount = 3;
     private float spawnTimer = 0;
     private float spawnInterval = 5f;
     private BulletAppState bulletAppState;
-    private AudioNode hitSound, ambientSound, towerHit;
+    private AudioNode hitSound, ambientSound, towerHit, playerHit, victorySound, lostSound, gameOverSound;
     private int playerHealth = 100;
     private int bulletsFired = 0;
     private BitmapText healthText, bulletsText, towerHealthT;
@@ -127,6 +124,30 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         towerHit.setPositional(false);
         towerHit.setVolume(3.8f);
         rootNode.attachChild(towerHit);
+        
+        playerHit = new AudioNode(assetManager, "Sounds/hitPlayer.wav", AudioData.DataType.Buffer);
+        playerHit.setLooping(false);
+        playerHit.setPositional(false);
+        playerHit.setVolume(3.8f);
+        rootNode.attachChild(playerHit);
+        
+        victorySound = new AudioNode(assetManager, "Sounds/victorySound.wav", AudioData.DataType.Buffer);
+        victorySound.setLooping(false);
+        victorySound.setPositional(false);
+        victorySound.setVolume(2.8f);
+        rootNode.attachChild(victorySound);
+        
+        lostSound = new AudioNode(assetManager, "Sounds/gameLostSound.wav", AudioData.DataType.Buffer);
+        lostSound.setLooping(false);
+        lostSound.setPositional(false);
+        lostSound.setVolume(2.8f);
+        rootNode.attachChild(lostSound);
+        
+        gameOverSound = new AudioNode(assetManager, "Sounds/gameOverSound.wav", AudioData.DataType.Buffer);
+        gameOverSound.setLooping(false);
+        gameOverSound.setPositional(false);
+        gameOverSound.setVolume(2.8f);
+        rootNode.attachChild(gameOverSound);
         
         initAmbientSound();
        
@@ -238,40 +259,43 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
     
     private void mostrarMensajeMuerte() {
-    juegoPerdido = true;
+        juegoPerdido = true;
     
-    // Mostrar mensaje de muerte
-    BitmapText gameOverText = new BitmapText(guiFont, false);
-    gameOverText.setSize(40);
-    gameOverText.setText("¡Has muerto!");
-    gameOverText.setColor(ColorRGBA.Red);
-    gameOverText.setLocalTranslation(
-        settings.getWidth() / 2 - gameOverText.getLineWidth() / 2,
-        settings.getHeight() / 2 + 50,
-        0);
-    guiNode.attachChild(gameOverText);
+        // Mostrar mensaje de muerte
+        BitmapText gameOverText = new BitmapText(guiFont, false);
+        gameOverText.setSize(50);
+        gameOverText.setText("¡HAS MUERTO!");
+        gameOverText.setColor(ColorRGBA.Red);
+        gameOverText.setLocalTranslation(
+            settings.getWidth() / 2 - gameOverText.getLineWidth() / 2,
+            settings.getHeight() / 2 + 50,
+            0);
+        guiNode.attachChild(gameOverText);
     
-    // Mostrar mensaje de reinicio
-    BitmapText restartText = new BitmapText(guiFont, false);
-    restartText.setSize(24);
-    restartText.setText("Presiona 'R' para reiniciar");
-    restartText.setColor(ColorRGBA.White);
-    restartText.setLocalTranslation(
-        settings.getWidth() / 2 - restartText.getLineWidth() / 2,
-        settings.getHeight() / 2,
-        0);
-    guiNode.attachChild(restartText);
+        // Mostrar mensaje de reinicio
+        BitmapText restartText = new BitmapText(guiFont, false);
+        restartText.setSize(20);
+        restartText.setText("Presiona 'R' para reiniciar");
+        restartText.setColor(ColorRGBA.White);
+        restartText.setLocalTranslation(
+            settings.getWidth() / 2 - restartText.getLineWidth() / 2,
+            settings.getHeight() / 2,
+            0);
+        guiNode.attachChild(restartText);
     
-    // Desactivar controles
-    inputManager.deleteMapping("Forward");
-    inputManager.deleteMapping("Backward");
-    inputManager.deleteMapping("Left");
-    inputManager.deleteMapping("Right");
-    inputManager.deleteMapping("Shoot");
+        // Desactivar controles
+        inputManager.deleteMapping("Forward");
+        inputManager.deleteMapping("Backward");
+        inputManager.deleteMapping("Left");
+        inputManager.deleteMapping("Right");
+        inputManager.deleteMapping("Shoot");
     
-    // Detener sonidos
-    ambientSound.stop();
-}
+        // Detener sonidos
+        ambientSound.stop();
+        
+        // Reproducir sonido de Game Over
+        gameOverSound.playInstance();
+    }
     
     private void mostrarMensajeVictoria() {
         juegoGanado = true;
@@ -292,29 +316,33 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         victoriaText.setColor(ColorRGBA.Green);
         victoriaText.setLocalTranslation(
             settings.getWidth() / 2 - victoriaText.getLineWidth() / 2,
-            settings.getHeight() / 2,
+            settings.getHeight() / 2 + 60,
             0);
         guiNode.attachChild(victoriaText);
         
         // Mostrar mensaje de Reinicio
         BitmapText restartText = new BitmapText(guiFont, false);
         restartText.setSize(20);
-        restartText.setText("¡Presiona 'R' para reiniciar el juego!");
+        restartText.setText("Presiona 'R' para reiniciar");
         restartText.setColor(ColorRGBA.White);
         restartText.setLocalTranslation(
-            settings.getWidth() - restartText.getLineWidth(),
-            settings.getHeight(),
+            settings.getWidth() / 2 - restartText.getLineWidth() / 2,
+            settings.getHeight() / 2,
             0);
         guiNode.attachChild(restartText);
     
-        // Detener sonido ambiente
-        ambientSound.stop();
-        
         // No poder moverse
         inputManager.deleteMapping("Forward");
         inputManager.deleteMapping("Backward");
         inputManager.deleteMapping("Left");
         inputManager.deleteMapping("Right");
+        inputManager.deleteMapping("Shoot");
+        
+        // Detener sonido ambiente
+        ambientSound.stop();
+        
+        // Reproducir sonido de Victoria
+        victorySound.playInstance();
     }
 
     private void ajustarDificultad() {
@@ -540,29 +568,33 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         derrotaText.setColor(ColorRGBA.Red);
         derrotaText.setLocalTranslation(
             settings.getWidth() / 2 - derrotaText.getLineWidth() / 2,
-            settings.getHeight() / 2,
+            settings.getHeight() / 2 + 60,
             0);
         guiNode.attachChild(derrotaText);
 
         // Mostrar mensaje de Reinicio
         BitmapText restartText = new BitmapText(guiFont, false);
         restartText.setSize(20);
-        restartText.setText("¡Presiona 'R' para reiniciar el juego!");
+        restartText.setText("Presiona 'R' para reiniciar");
         restartText.setColor(ColorRGBA.White);
         restartText.setLocalTranslation(
-            settings.getWidth() - restartText.getLineWidth(),
-            settings.getHeight(),
+            settings.getWidth() / 2 - restartText.getLineWidth() / 2,
+            settings.getHeight() / 2,
             0);
         guiNode.attachChild(restartText);
-    
-        // Detener sonido ambiente
-        ambientSound.stop();
         
         // No poder moverse
         inputManager.deleteMapping("Forward");
         inputManager.deleteMapping("Backward");
         inputManager.deleteMapping("Left");
         inputManager.deleteMapping("Right");
+        inputManager.deleteMapping("Shoot");
+        
+        // Detener sonido ambiente
+        ambientSound.stop();
+        
+        // Reproducir sonido de Game Lost
+        lostSound.playInstance();
     }
 
     @Override
@@ -868,6 +900,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
     if (ec != null && !ec.isDead() && ec.canDamage()) {
         damagePlayer(10);
+        playerHit.playInstance();
         ec.resetDamageCooldown();
         // Empujar al jugador
         Vector3f pushDirection = player.getWorldTranslation()
