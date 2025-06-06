@@ -15,7 +15,7 @@ public class EnemigoControl extends AbstractControl {
     
     // Variables mejoradas
     private int currentWaypoint = 0;  // Punto actual en el camino
-    private float speed = 2.2f;       // Velocidad base
+    private float speed = 3.5f;       // Velocidad base
     private boolean isDead = false;   // Estado del enemigo
     private float deathTimer = 0f;    // Temporizador para eliminación
     private float rotationSpeed = 4f; // Velocidad de rotación suavizada
@@ -25,7 +25,7 @@ public class EnemigoControl extends AbstractControl {
     private float speedVariation = 0f; 
     
     private float speedBase = 3.5f;       // Velocidad base inicial
-    private float speedMax = 8.0f;        // Velocidad máxima posible
+    private float speedMax = 7.0f;        // Velocidad máxima posible
     private float currentSpeed;           // Velocidad actual
     private float damageCooldown = 0f;
     private final float DAMAGE_COOLDOWN_TIME = 1f; // 1 segundo entre daños

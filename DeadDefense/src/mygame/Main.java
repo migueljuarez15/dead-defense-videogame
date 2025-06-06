@@ -55,7 +55,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private List<Spatial> enemys = new ArrayList<>();
     
     public int puntos = 0;
-    protected int puntosParaGanar = 300; // Meta para ganar el juego
+    protected int puntosParaGanar = 400; // Meta para ganar el juego
     private float spawnIntervalBase = 4f; 
     private float spawnIntervalMin = 0.5f; 
     private BitmapText puntosText; 
@@ -63,7 +63,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private int maxEnemigosEnEscena = 6; // Máximo de enemigos permitidos en pantalla
     protected int enemigosEnEscena = 0;     
     private int enemigosPorOleadaBase = 2; 
-    private int enemigosPorOleadaMax = 6;  
+    private int enemigosPorOleadaMax = 4;  
     private boolean juegoGanado = false;
     private boolean juegoPerdido = false;
     
