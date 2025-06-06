@@ -24,8 +24,8 @@ public class EnemigoControl extends AbstractControl {
     // Nueva variable para variación de velocidad
     private float speedVariation = 0f; 
     
-    private float speedBase = 2.2f;       // Velocidad base inicial
-    private float speedMax = 4.0f;        // Velocidad máxima posible
+    private float speedBase = 3.5f;       // Velocidad base inicial
+    private float speedMax = 8.0f;        // Velocidad máxima posible
     private float currentSpeed;           // Velocidad actual
     private float damageCooldown = 0f;
     private final float DAMAGE_COOLDOWN_TIME = 1f; // 1 segundo entre daños

@@ -60,10 +60,10 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private float spawnIntervalMin = 0.5f; 
     private BitmapText puntosText; 
     private int enemigosPorOleada = 1;
-    private int maxEnemigosEnEscena = 5; // Máximo de enemigos permitidos en pantalla
+    private int maxEnemigosEnEscena = 6; // Máximo de enemigos permitidos en pantalla
     protected int enemigosEnEscena = 0;     
     private int enemigosPorOleadaBase = 2; 
-    private int enemigosPorOleadaMax = 5;  
+    private int enemigosPorOleadaMax = 6;  
     private boolean juegoGanado = false;
     private boolean juegoPerdido = false;
     
@@ -221,6 +221,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         // Mapeo de teclas para reiniciar
         inputManager.addMapping("RestartGame", new KeyTrigger(KeyInput.KEY_R));
         inputManager.addListener(actionListenerRestart, "RestartGame");
+        
+        createCemeteryWalls();
     }
     
 
@@ -427,6 +429,51 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
         rootNode.attachChild(barraHorizontalGeo);
     }
+    private void createCemeteryWalls() {
+    // Material para los muros
+    Material wallMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    Texture wallTexture = assetManager.loadTexture("Textures/piedras-apiladas.jpg");
+    wallTexture.setWrap(Texture.WrapMode.Repeat);
+    wallMat.setTexture("DiffuseMap", wallTexture);
+    wallMat.setFloat("Shininess", 1f);
+    
+    // Tamaño del mundo (ajustar según tu escena)
+    float worldSize = 50f;
+    float wallHeight = 3f;
+    float wallThickness = 1f;
+    
+    // Crear 4 muros (norte, sur, este, oeste)
+    Box[] walls = {
+        new Box(worldSize, wallHeight, wallThickness), // Norte
+        new Box(worldSize, wallHeight, wallThickness), // Sur
+        new Box(wallThickness, wallHeight, worldSize), // Este
+        new Box(wallThickness, wallHeight, worldSize)  // Oeste
+    };
+    
+    Vector3f[] positions = {
+        new Vector3f(0, wallHeight, worldSize),  // Norte
+        new Vector3f(0, wallHeight, -worldSize), // Sur
+        new Vector3f(worldSize, wallHeight, 0),  // Este
+        new Vector3f(-worldSize, wallHeight, 0)  // Oeste
+    };
+    
+    for (int i = 0; i < walls.length; i++) {
+        Geometry wallGeo = new Geometry("CemeteryWall_" + i, walls[i]);
+        wallGeo.setMaterial(wallMat);
+        wallGeo.setLocalTranslation(positions[i]);
+        
+        // Escalar texturas
+        walls[i].scaleTextureCoordinates(new Vector2f(10f, 2f));
+        
+        // Añadir física estática
+        RigidBodyControl wallPhysics = new RigidBodyControl(0f);
+        wallGeo.addControl(wallPhysics);
+        bulletAppState.getPhysicsSpace().add(wallPhysics);
+        
+        rootNode.attachChild(wallGeo);
+    }
+    
+}
 
     private void crearTumba(Vector3f position) {
         Node tumbaNodo = new Node("Tomb_" + position.toString());
