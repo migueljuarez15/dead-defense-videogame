@@ -10,9 +10,13 @@ import com.jme3.bullet.control.GhostControl;
 import com.jme3.math.Quaternion;
 import com.jme3.math.FastMath; 
 
-
+/**
+ * Dead Defense: El videojuego
+ * @author Miguel Ángel Juárez Martínez
+ * @author Franco Sánchez Gutierrez
+ * @author Braulio Adrián Bollaín y Goytia Ortega
+ */
 public class EnemigoControl extends AbstractControl {
-    
     // Variables mejoradas
     private int currentWaypoint = 0;  // Punto actual en el camino
     private float speed = 3.5f;       // Velocidad base
@@ -20,18 +24,15 @@ public class EnemigoControl extends AbstractControl {
     private float deathTimer = 0f;    // Temporizador para eliminación
     private float rotationSpeed = 4f; // Velocidad de rotación suavizada
     private Spatial target; // El jugador
-    
     // Nueva variable para variación de velocidad
-    private float speedVariation = 0f; 
-    
+    private float speedVariation = 0f;
     private float speedBase = 3.5f;       // Velocidad base inicial
     private float speedMax = 7.0f;        // Velocidad máxima posible
     private float currentSpeed;           // Velocidad actual
     private float damageCooldown = 0f;
     private final float DAMAGE_COOLDOWN_TIME = 1f; // 1 segundo entre daños
-    
-
-     private final Main mainGame; // Referencia al juego principal
+    private final Main mainGame; // Referencia al juego principal
+    private Vector3f velocity = new Vector3f(); // Velocidad acumulada
     
     // Modificar el constructor para recibir la instancia de Main
     public EnemigoControl(Spatial target, Main mainGame) {
@@ -65,8 +66,6 @@ public class EnemigoControl extends AbstractControl {
             spatial.removeFromParent();
         }
     }
-   
-     
     
     @Override
     protected void controlUpdate(float tpf) {
@@ -115,14 +114,6 @@ public class EnemigoControl extends AbstractControl {
         spatial.move(direction.normalize().mult(currentSpeed * tpf));
     }
 
-
-    /*private void advanceToNextWaypoint() {
-        currentWaypoint++;
-        if (currentWaypoint >= path.getChildren().size()) {
-            reachEndOfPath();
-        }
-    }*/
-
     private void reachEndOfPath() {
         // Aquí podrías dañar al jugador si el enemigo llega al final
         // ((Main)getApplication()).damagePlayer(10);
@@ -136,9 +127,6 @@ public class EnemigoControl extends AbstractControl {
         }
     }
     
-    private Vector3f velocity = new Vector3f(); // Velocidad acumulada
-    
-
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp) {
         // No necesario para esta implementación

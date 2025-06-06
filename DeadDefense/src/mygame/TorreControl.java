@@ -4,8 +4,13 @@ import com.jme3.scene.control.AbstractControl;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 
+/**
+ * Dead Defense: El videojuego
+ * @author Miguel Ángel Juárez Martínez
+ * @author Franco Sánchez Gutierrez
+ * @author Braulio Adrián Bollaín y Goytia Ortega
+ */
 public class TorreControl extends AbstractControl {
-
     private int vida = 100;
     private boolean destruida = false;
 

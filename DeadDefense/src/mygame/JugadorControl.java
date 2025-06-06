@@ -8,13 +8,17 @@ import com.jme3.renderer.Camera;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.Spatial;
 
+/**
+ * Dead Defense: El videojuego
+ * @author Miguel Ángel Juárez Martínez
+ * @author Franco Sánchez Gutierrez
+ * @author Braulio Adrián Bollaín y Goytia Ortega
+ */
 public class JugadorControl extends AbstractControl implements ActionListener {
-
     private int vida = 100;
     private boolean forward = false, backward = false, left = false, right = false;
     private float speed = 7.0f;
     private boolean estaMuerto = false;
-
     private final Camera cam;
     private final RigidBodyControl rigidBody;
 
@@ -38,7 +42,6 @@ public class JugadorControl extends AbstractControl implements ActionListener {
         }
     }
    
-
     public boolean estaMuerto() {
         return estaMuerto;
     }

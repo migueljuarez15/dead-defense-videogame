@@ -37,6 +37,12 @@ import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
 import com.jme3.effect.shapes.EmitterSphereShape;
 
+/**
+ * Dead Defense: El videojuego
+ * @author Miguel Ángel Juárez Martínez
+ * @author Franco Sánchez Gutierrez
+ * @author Braulio Adrián Bollaín y Goytia Ortega
+ */
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
     private Spatial player;
     private Node[] enemyPaths;
@@ -50,7 +56,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private BitmapText healthText, bulletsText, towerHealthT;
     private Node torre;
     private List<Spatial> enemys = new ArrayList<>();
-    
     public int puntos = 0;
     protected int puntosParaGanar = 400; // Meta para ganar el juego
     private float spawnIntervalBase = 4f; 
@@ -63,6 +68,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private int enemigosPorOleadaMax = 4;  
     private boolean juegoGanado = false;
     private boolean juegoPerdido = false;
+    private ParticleEmitter rainEmitter;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -71,15 +77,13 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         settings.setTitle("Dead Defense");
 
         // Cambiar el logo del mono
-        settings.setSettingsDialogImage("/Images/deadDefense.png");
+        settings.setSettingsDialogImage("/Images/deadDefenseFixed.png");
 
         // Asignar configuración a la app
         app.setSettings(settings);
         app.setShowSettings(true); // Muestra el diálogo al iniciar
         app.start();
     }
-    
-    private ParticleEmitter rainEmitter;
     
     @Override
     public void simpleInitApp() {
@@ -246,6 +250,44 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         createCemeteryWalls();
     }
     
+    @Override
+    public void simpleUpdate(float tpf) {
+        if (juegoGanado || juegoPerdido) return;
+
+        // Verificar estado de la torre
+            TorreControl tc = torre.getControl(TorreControl.class);
+            if (tc != null && tc.getVida() <= 0 && !juegoPerdido) {
+                tc.destruirTorre();
+                mostrarMensajeDerrota();
+                return;
+            }
+
+        spawnTimer += tpf;
+        if (spawnTimer > spawnInterval) {
+            spawnTimer = 0;
+            spawnEnemy();
+        }
+    
+        // Actualizar texto HUD con la vida de la torre
+        if (tc != null) {
+            towerHealthT.setText("Vida Torre: " + tc.getVida());
+        }
+
+        // Detectar colisión entre enemigos y la torre
+        Iterator<Spatial> iterator = enemys.iterator();
+        while (iterator.hasNext()) {
+            Spatial enemigo = iterator.next();
+            if (enemigo.getWorldTranslation().distance(torre.getWorldTranslation()) < 2f) {
+                if (tc != null) {
+                    tc.recibirDanno(10);
+                    towerHit.playInstance();
+                }
+                rootNode.detachChild(enemigo);
+                iterator.remove();
+                enemigosEnEscena--;
+            }
+        }
+    }
 
     public void addPuntos(int cantidad) {
         puntos += cantidad;
@@ -260,6 +302,15 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
     private void mostrarMensajeMuerte() {
         juegoPerdido = true;
+        
+        // Eliminar todos los enemigos existentes
+        Iterator<Spatial> iterator = enemys.iterator();
+        while (iterator.hasNext()) {
+            Spatial enemigo = iterator.next();
+            rootNode.detachChild(enemigo);
+            iterator.remove();
+            enemigosEnEscena--;
+        }
     
         // Mostrar mensaje de muerte
         BitmapText gameOverText = new BitmapText(guiFont, false);
@@ -295,6 +346,55 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         
         // Reproducir sonido de Game Over
         gameOverSound.playInstance();
+    }
+    
+    // Método para manejar la derrota
+    private void mostrarMensajeDerrota() {
+        juegoPerdido = true;
+
+        // Eliminar todos los enemigos existentes
+        Iterator<Spatial> iterator = enemys.iterator();
+        while (iterator.hasNext()) {
+            Spatial enemigo = iterator.next();
+            rootNode.detachChild(enemigo);
+            iterator.remove();
+            enemigosEnEscena--;
+        }
+
+        // Mostrar mensaje de derrota
+        BitmapText derrotaText = new BitmapText(guiFont, false);
+        derrotaText.setSize(60);
+        derrotaText.setText("¡DERROTA!");
+        derrotaText.setColor(ColorRGBA.Red);
+        derrotaText.setLocalTranslation(
+            settings.getWidth() / 2 - derrotaText.getLineWidth() / 2,
+            settings.getHeight() / 2 + 60,
+            0);
+        guiNode.attachChild(derrotaText);
+
+        // Mostrar mensaje de Reinicio
+        BitmapText restartText = new BitmapText(guiFont, false);
+        restartText.setSize(20);
+        restartText.setText("Presiona 'R' para reiniciar");
+        restartText.setColor(ColorRGBA.White);
+        restartText.setLocalTranslation(
+            settings.getWidth() / 2 - restartText.getLineWidth() / 2,
+            settings.getHeight() / 2,
+            0);
+        guiNode.attachChild(restartText);
+        
+        // No poder moverse
+        inputManager.deleteMapping("Forward");
+        inputManager.deleteMapping("Backward");
+        inputManager.deleteMapping("Left");
+        inputManager.deleteMapping("Right");
+        inputManager.deleteMapping("Shoot");
+        
+        // Detener sonido ambiente
+        ambientSound.stop();
+        
+        // Reproducir sonido de Game Lost
+        lostSound.playInstance();
     }
     
     private void mostrarMensajeVictoria() {
@@ -358,8 +458,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         enemigosPorOleada = Math.min(enemigosPorOleada, enemigosPorOleadaMax);
     }
     
-    
-    
     private void crearEfectoLluvia() {
         rainEmitter = new ParticleEmitter("Rain", ParticleMesh.Type.Triangle, 2500);
         Material rainMat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
@@ -383,7 +481,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
         rootNode.attachChild(rainEmitter);
     }
-    
     
     private void createCemeteryStructures() {
         // Crear suelo del cementerio
@@ -458,50 +555,49 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         rootNode.attachChild(barraHorizontalGeo);
     }
     private void createCemeteryWalls() {
-    // Material para los muros
-    Material wallMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-    Texture wallTexture = assetManager.loadTexture("Textures/piedras-apiladas.jpg");
-    wallTexture.setWrap(Texture.WrapMode.Repeat);
-    wallMat.setTexture("DiffuseMap", wallTexture);
-    wallMat.setFloat("Shininess", 1f);
+        // Material para los muros
+        Material wallMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        Texture wallTexture = assetManager.loadTexture("Textures/piedras-apiladas.jpg");
+        wallTexture.setWrap(Texture.WrapMode.Repeat);
+        wallMat.setTexture("DiffuseMap", wallTexture);
+        wallMat.setFloat("Shininess", 1f);
     
-    // Tamaño del mundo (ajustar según tu escena)
-    float worldSize = 50f;
-    float wallHeight = 3f;
-    float wallThickness = 1f;
+        // Tamaño del mundo (ajustar según tu escena)
+        float worldSize = 50f;
+        float wallHeight = 3f;
+        float wallThickness = 1f;
     
-    // Crear 4 muros (norte, sur, este, oeste)
-    Box[] walls = {
-        new Box(worldSize, wallHeight, wallThickness), // Norte
-        new Box(worldSize, wallHeight, wallThickness), // Sur
-        new Box(wallThickness, wallHeight, worldSize), // Este
-        new Box(wallThickness, wallHeight, worldSize)  // Oeste
-    };
+        // Crear 4 muros (norte, sur, este, oeste)
+        Box[] walls = {
+            new Box(worldSize, wallHeight, wallThickness), // Norte
+            new Box(worldSize, wallHeight, wallThickness), // Sur
+            new Box(wallThickness, wallHeight, worldSize), // Este
+            new Box(wallThickness, wallHeight, worldSize)  // Oeste
+        };
     
-    Vector3f[] positions = {
-        new Vector3f(0, wallHeight, worldSize),  // Norte
-        new Vector3f(0, wallHeight, -worldSize), // Sur
-        new Vector3f(worldSize, wallHeight, 0),  // Este
-        new Vector3f(-worldSize, wallHeight, 0)  // Oeste
-    };
+        Vector3f[] positions = {
+            new Vector3f(0, wallHeight, worldSize),  // Norte
+            new Vector3f(0, wallHeight, -worldSize), // Sur
+            new Vector3f(worldSize, wallHeight, 0),  // Este
+            new Vector3f(-worldSize, wallHeight, 0)  // Oeste
+        };
     
-    for (int i = 0; i < walls.length; i++) {
-        Geometry wallGeo = new Geometry("CemeteryWall_" + i, walls[i]);
-        wallGeo.setMaterial(wallMat);
-        wallGeo.setLocalTranslation(positions[i]);
+        for (int i = 0; i < walls.length; i++) {
+            Geometry wallGeo = new Geometry("CemeteryWall_" + i, walls[i]);
+            wallGeo.setMaterial(wallMat);
+            wallGeo.setLocalTranslation(positions[i]);
         
-        // Escalar texturas
-        walls[i].scaleTextureCoordinates(new Vector2f(10f, 2f));
+            // Escalar texturas
+            walls[i].scaleTextureCoordinates(new Vector2f(10f, 2f));
         
-        // Añadir física estática
-        RigidBodyControl wallPhysics = new RigidBodyControl(0f);
-        wallGeo.addControl(wallPhysics);
-        bulletAppState.getPhysicsSpace().add(wallPhysics);
+            // Añadir física estática
+            RigidBodyControl wallPhysics = new RigidBodyControl(0f);
+            wallGeo.addControl(wallPhysics);
+            bulletAppState.getPhysicsSpace().add(wallPhysics);
         
-        rootNode.attachChild(wallGeo);
+            rootNode.attachChild(wallGeo);
+        }
     }
-    
-}
 
     private void crearTumba(Vector3f position) {
         Node tumbaNodo = new Node("Tomb_" + position.toString());
@@ -546,94 +642,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletAppState.getPhysicsSpace().add(tumbaFisica);
     
         rootNode.attachChild(tumbaNodo);
-    }
-
-    // Método para manejar la derrota
-    private void mostrarMensajeDerrota() {
-        juegoPerdido = true;
-
-        // Eliminar todos los enemigos existentes
-        Iterator<Spatial> iterator = enemys.iterator();
-        while (iterator.hasNext()) {
-            Spatial enemigo = iterator.next();
-            rootNode.detachChild(enemigo);
-            iterator.remove();
-            enemigosEnEscena--;
-        }
-
-        // Mostrar mensaje de derrota
-        BitmapText derrotaText = new BitmapText(guiFont, false);
-        derrotaText.setSize(60);
-        derrotaText.setText("¡DERROTA!");
-        derrotaText.setColor(ColorRGBA.Red);
-        derrotaText.setLocalTranslation(
-            settings.getWidth() / 2 - derrotaText.getLineWidth() / 2,
-            settings.getHeight() / 2 + 60,
-            0);
-        guiNode.attachChild(derrotaText);
-
-        // Mostrar mensaje de Reinicio
-        BitmapText restartText = new BitmapText(guiFont, false);
-        restartText.setSize(20);
-        restartText.setText("Presiona 'R' para reiniciar");
-        restartText.setColor(ColorRGBA.White);
-        restartText.setLocalTranslation(
-            settings.getWidth() / 2 - restartText.getLineWidth() / 2,
-            settings.getHeight() / 2,
-            0);
-        guiNode.attachChild(restartText);
-        
-        // No poder moverse
-        inputManager.deleteMapping("Forward");
-        inputManager.deleteMapping("Backward");
-        inputManager.deleteMapping("Left");
-        inputManager.deleteMapping("Right");
-        inputManager.deleteMapping("Shoot");
-        
-        // Detener sonido ambiente
-        ambientSound.stop();
-        
-        // Reproducir sonido de Game Lost
-        lostSound.playInstance();
-    }
-
-    @Override
-    public void simpleUpdate(float tpf) {
-        if (juegoGanado || juegoPerdido) return;
-
-        // Verificar estado de la torre
-            TorreControl tc = torre.getControl(TorreControl.class);
-            if (tc != null && tc.getVida() <= 0 && !juegoPerdido) {
-                tc.destruirTorre();
-                mostrarMensajeDerrota();
-                return;
-            }
-
-        spawnTimer += tpf;
-        if (spawnTimer > spawnInterval) {
-            spawnTimer = 0;
-            spawnEnemy();
-        }
-    
-        // Actualizar texto HUD con la vida de la torre
-        if (tc != null) {
-            towerHealthT.setText("Vida Torre: " + tc.getVida());
-        }
-
-        // Detectar colisión entre enemigos y la torre
-        Iterator<Spatial> iterator = enemys.iterator();
-        while (iterator.hasNext()) {
-            Spatial enemigo = iterator.next();
-            if (enemigo.getWorldTranslation().distance(torre.getWorldTranslation()) < 2f) {
-                if (tc != null) {
-                    tc.recibirDanno(10);
-                    towerHit.playInstance();
-                }
-                rootNode.detachChild(enemigo);
-                iterator.remove();
-                enemigosEnEscena--;
-            }
-        }
     }
 
     private void createGround() {
@@ -699,21 +707,21 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     private Geometry createMarker(Vector3f location) {
-    Sphere rocaForma = new Sphere(16, 16, 0.3f); // Radio de 0.3
-    Geometry roca = new Geometry("RockMarker", rocaForma);
+        Sphere rocaForma = new Sphere(16, 16, 0.3f); // Radio de 0.3
+        Geometry roca = new Geometry("RockMarker", rocaForma);
     
-    Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-    // Cargar textura de roca
-    Texture rocaTx = assetManager.loadTexture("Textures/piedra-negro.jpg");
-    mat.setTexture("DiffuseMap", rocaTx);
-    mat.setBoolean("UseMaterialColors", true);
-    mat.setColor("Diffuse", ColorRGBA.Gray); // Color base gris
-    mat.setFloat("Shininess", 5f); // Brillo moderado
+        Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        // Cargar textura de roca
+        Texture rocaTx = assetManager.loadTexture("Textures/piedra-negro.jpg");
+        mat.setTexture("DiffuseMap", rocaTx);
+        mat.setBoolean("UseMaterialColors", true);
+        mat.setColor("Diffuse", ColorRGBA.Gray); // Color base gris
+        mat.setFloat("Shininess", 5f); // Brillo moderado
     
-    roca.setMaterial(mat);
-    roca.setLocalTranslation(location);
-    return roca;
-}
+        roca.setMaterial(mat);
+        roca.setLocalTranslation(location);
+        return roca;
+    }
 
     public synchronized void removerEnemigo(Spatial enemigo) {
         if (enemys.remove(enemigo)) {
@@ -777,9 +785,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             }
         }
     }
-    
-
-    
 
     private void createPlayer() {
         // Cargar el modelo
@@ -854,35 +859,35 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     public void collision(PhysicsCollisionEvent event) {
-    if (juegoGanado) return;  
-    Spatial a = event.getNodeA();
-    Spatial b = event.getNodeB();
+        if (juegoGanado) return;  
+        Spatial a = event.getNodeA();
+        Spatial b = event.getNodeB();
     
-    if (a == null || b == null) return;
+        if (a == null || b == null) return;
 
-    Spatial bala = null;
-    Spatial enemigo = null;
-    Spatial jugador = null;
+        Spatial bala = null;
+        Spatial enemigo = null;
+        Spatial jugador = null;
 
-    // Detección de colisión bala-enemigo
-    if ("Bullet".equals(a.getName()) && "Enemy".equals(b.getName())) {
-        bala = a;
-        enemigo = b;
-    } else if ("Enemy".equals(a.getName()) && "Bullet".equals(b.getName())) {
-        bala = b;
-        enemigo = a;
-    }
+        // Detección de colisión bala-enemigo
+        if ("Bullet".equals(a.getName()) && "Enemy".equals(b.getName())) {
+            bala = a;
+            enemigo = b;
+        } else if ("Enemy".equals(a.getName()) && "Bullet".equals(b.getName())) {
+            bala = b;
+            enemigo = a;
+        }
 
-    // Detección de colisión jugador-enemigo
-    if (a == player && "Enemy".equals(b.getName())) {
-        jugador = a;
-        enemigo = b;
-    } else if ("Enemy".equals(a.getName()) && b == player) {
-        jugador = b;
-        enemigo = a;
-    }
+        // Detección de colisión jugador-enemigo
+        if (a == player && "Enemy".equals(b.getName())) {
+            jugador = a;
+            enemigo = b;
+        } else if ("Enemy".equals(a.getName()) && b == player) {
+            jugador = b;
+            enemigo = a;
+        }
 
-    if (bala != null && enemigo != null) {
+        if (bala != null && enemigo != null) {
             EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
             if (ec != null && !ec.isDead()) {
                 ec.markDead();
@@ -896,21 +901,21 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             }
         }
 
-    if (jugador != null && enemigo != null) {
-    EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
-    if (ec != null && !ec.isDead() && ec.canDamage()) {
-        damagePlayer(10);
-        playerHit.playInstance();
-        ec.resetDamageCooldown();
-        // Empujar al jugador
-        Vector3f pushDirection = player.getWorldTranslation()
-            .subtract(enemigo.getWorldTranslation())
-            .normalizeLocal()
-            .multLocal(5f);
-        player.getControl(RigidBodyControl.class).setLinearVelocity(pushDirection);
+        if (jugador != null && enemigo != null) {
+            EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
+            if (ec != null && !ec.isDead() && ec.canDamage()) {
+                damagePlayer(10);
+                playerHit.playInstance();
+                ec.resetDamageCooldown();
+                // Empujar al jugador
+                Vector3f pushDirection = player.getWorldTranslation()
+                    .subtract(enemigo.getWorldTranslation())
+                    .normalizeLocal()
+                    .multLocal(5f);
+                player.getControl(RigidBodyControl.class).setLinearVelocity(pushDirection);
+            }
+        }
     }
-}
-}
     
     private void updateBulletText() {
         if (bulletsText != null) {
@@ -961,6 +966,9 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletsFired = 0;
         playerHealth = 100;
         torre = null;
+        victorySound.stop();
+        lostSound.stop();
+        gameOverSound.stop();
 
         // Eliminar todo del rootNode y guiNode
         rootNode.detachAllChildren();

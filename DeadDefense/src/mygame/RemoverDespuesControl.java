@@ -5,8 +5,13 @@ import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 
+/**
+ * Dead Defense: El videojuego
+ * @author Miguel Ángel Juárez Martínez
+ * @author Franco Sánchez Gutierrez
+ * @author Braulio Adrián Bollaín y Goytia Ortega
+ */
 public class RemoverDespuesControl extends AbstractControl {
-
     private float timer = 0;
     private float delay;
     private BulletAppState bulletAppState;

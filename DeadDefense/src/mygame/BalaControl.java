@@ -5,8 +5,13 @@ import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.Spatial;
 import com.jme3.bullet.BulletAppState;
 
+/**
+ * Dead Defense: El videojuego
+ * @author Miguel Ángel Juárez Martínez
+ * @author Franco Sánchez Gutierrez
+ * @author Braulio Adrián Bollaín y Goytia Ortega
+ */
 public class BalaControl extends AbstractControl {
-
     private float lifetime = 0;
     private final float maxLifetime = 2f; // segundos
     private BulletAppState bulletAppState;
