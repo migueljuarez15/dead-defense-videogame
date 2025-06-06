@@ -33,10 +33,11 @@ public class JugadorControl extends AbstractControl implements ActionListener {
             if (vida <= 0) {
                 vida = 0;
                 estaMuerto = true;
-                // Lógica de muerte aquí (puedes detener el movimiento, mostrar mensaje, etc.)
+                // Aquí puedes agregar lógica adicional al morir
             }
         }
     }
+   
 
     public boolean estaMuerto() {
         return estaMuerto;

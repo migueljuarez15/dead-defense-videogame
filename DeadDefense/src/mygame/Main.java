@@ -61,7 +61,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     private BitmapText puntosText; 
     private int enemigosPorOleada = 1;
     private int maxEnemigosEnEscena = 5; // Máximo de enemigos permitidos en pantalla
-    private int enemigosEnEscena = 0;     
+    protected int enemigosEnEscena = 0;     
     private int enemigosPorOleadaBase = 2; 
     private int enemigosPorOleadaMax = 5;  
     private boolean juegoGanado = false;
@@ -155,7 +155,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         guiNode.attachChild(crosshair);
 
         // Texto de vida
-        BitmapText healthText = new BitmapText(font, false);
+        healthText = new BitmapText(font, false);
         healthText.setSize(font.getCharSet().getRenderedSize());
         healthText.setLocalTranslation(10, settings.getHeight() - 10, 0);
         healthText.setText("Vida: 100");
@@ -235,6 +235,42 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         ajustarDificultad();
     }
     
+    private void mostrarMensajeMuerte() {
+    juegoPerdido = true;
+    
+    // Mostrar mensaje de muerte
+    BitmapText gameOverText = new BitmapText(guiFont, false);
+    gameOverText.setSize(40);
+    gameOverText.setText("¡Has muerto!");
+    gameOverText.setColor(ColorRGBA.Red);
+    gameOverText.setLocalTranslation(
+        settings.getWidth() / 2 - gameOverText.getLineWidth() / 2,
+        settings.getHeight() / 2 + 50,
+        0);
+    guiNode.attachChild(gameOverText);
+    
+    // Mostrar mensaje de reinicio
+    BitmapText restartText = new BitmapText(guiFont, false);
+    restartText.setSize(24);
+    restartText.setText("Presiona 'R' para reiniciar");
+    restartText.setColor(ColorRGBA.White);
+    restartText.setLocalTranslation(
+        settings.getWidth() / 2 - restartText.getLineWidth() / 2,
+        settings.getHeight() / 2,
+        0);
+    guiNode.attachChild(restartText);
+    
+    // Desactivar controles
+    inputManager.deleteMapping("Forward");
+    inputManager.deleteMapping("Backward");
+    inputManager.deleteMapping("Left");
+    inputManager.deleteMapping("Right");
+    inputManager.deleteMapping("Shoot");
+    
+    // Detener sonidos
+    ambientSound.stop();
+}
+    
     private void mostrarMensajeVictoria() {
         juegoGanado = true;
     
@@ -295,7 +331,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     
     
     private void crearEfectoLluvia() {
-        rainEmitter = new ParticleEmitter("Rain", ParticleMesh.Type.Triangle, 5000);
+        rainEmitter = new ParticleEmitter("Rain", ParticleMesh.Type.Triangle, 2500);
         Material rainMat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
         rainMat.setTexture("Texture", assetManager.loadTexture("Textures/rain3.png"));
         rainEmitter.setMaterial(rainMat);
@@ -584,70 +620,87 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     private Geometry createMarker(Vector3f location) {
-        Box box = new Box(0.5f, 0.1f, 0.5f);
-        Geometry marker = new Geometry("Point", box);
-        Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        mat.setBoolean("UseMaterialColors", true);
-        mat.setColor("Diffuse", ColorRGBA.Red);
-        mat.setColor("Ambient", ColorRGBA.Red);
-        marker.setMaterial(mat);
-        marker.setLocalTranslation(location);
-        return marker;
-    }
+    Sphere rocaForma = new Sphere(16, 16, 0.3f); // Radio de 0.3
+    Geometry roca = new Geometry("RockMarker", rocaForma);
+    
+    Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+    // Cargar textura de roca
+    Texture rocaTx = assetManager.loadTexture("Textures/piedra-negro.jpg");
+    mat.setTexture("DiffuseMap", rocaTx);
+    mat.setBoolean("UseMaterialColors", true);
+    mat.setColor("Diffuse", ColorRGBA.Gray); // Color base gris
+    mat.setFloat("Shininess", 5f); // Brillo moderado
+    
+    roca.setMaterial(mat);
+    roca.setLocalTranslation(location);
+    return roca;
+}
 
+    public synchronized void removerEnemigo(Spatial enemigo) {
+        if (enemys.remove(enemigo)) {
+            enemigosEnEscena--;
+        }
+    }
+    
     private void spawnEnemy() {
-    if (juegoGanado || juegoPerdido) return;  // No spawnear si el juego está ganado
-    // Verificar si podemos spawnear más enemigos
-    if (enemigosEnEscena >= maxEnemigosEnEscena) {
-        return; // No spawnear si ya hay demasiados enemigos
-    }
-
-    for(int i = 0; i < enemigosPorOleada; i++) {
-        // Verificar nuevamente por cada enemigo de la oleada
-        if (enemigosEnEscena >= maxEnemigosEnEscena) {
-            break;
-        }
-
-        int pathIndex = FastMath.rand.nextInt(pathCount);
-        Node selectedPath = enemyPaths[pathIndex];
-
-        Spatial enemy = assetManager.loadModel("Models/Enemigo/skeleton.j3o");
-        enemy.setLocalScale(1.5f);
-        enemy.setName("Enemy");
-        enemy.setLocalTranslation(selectedPath.getChild(0).getLocalTranslation().clone());
-
-        CapsuleCollisionShape shape = new CapsuleCollisionShape(1.3f, 1.8f);
-        GhostControl ghostControl = new GhostControl(shape);
-        enemy.addControl(ghostControl);
-        bulletAppState.getPhysicsSpace().add(ghostControl);
-
-        Spatial target = FastMath.nextRandomFloat() < 0.5f ? player : torre;
+        if (juegoGanado || juegoPerdido) return;
         
-        EnemigoControl control = new EnemigoControl(target, this);
-        enemy.addControl(control);
+        // Verificación más estricta del límite
+        synchronized(this) {
+            if (enemigosEnEscena >= maxEnemigosEnEscena) {
+                return;
+            }
+            
+            int disponibles = maxEnemigosEnEscena - enemigosEnEscena;
+            int aSpawnear = Math.min(enemigosPorOleada, disponibles);
+            
+            for(int i = 0; i < aSpawnear; i++) {
+                if (enemigosEnEscena >= maxEnemigosEnEscena) break;
+                
+                int pathIndex = FastMath.rand.nextInt(pathCount);
+                Node selectedPath = enemyPaths[pathIndex];
 
-        // Añadir listener para cuando el enemigo muera
-        enemy.addControl(new AbstractControl() {
-            @Override
-            protected void controlUpdate(float tpf) {}
-            
-            @Override
-            protected void controlRender(RenderManager rm, ViewPort vp) {}
-            
-            @Override
-            public void setSpatial(Spatial spatial) {
-                 super.setSpatial(spatial);
-                    if (spatial != null) {
-                        enemigosEnEscena++; // Incrementar al crearse
+                Spatial enemy = assetManager.loadModel("Models/Enemigo/skeleton.j3o");
+                enemy.setLocalScale(1.5f);
+                enemy.setName("Enemy");
+                enemy.setLocalTranslation(selectedPath.getChild(0).getLocalTranslation().clone());
+
+                CapsuleCollisionShape shape = new CapsuleCollisionShape(1.3f, 1.8f);
+                GhostControl ghostControl = new GhostControl(shape);
+                enemy.addControl(ghostControl);
+                bulletAppState.getPhysicsSpace().add(ghostControl);
+
+                Spatial target = FastMath.nextRandomFloat() < 0.5f ? player : torre;
+                
+                EnemigoControl control = new EnemigoControl(target, this);
+                enemy.addControl(control);
+
+                enemy.addControl(new AbstractControl() {
+                    @Override
+                    protected void controlUpdate(float tpf) {}
+                    
+                    @Override
+                    protected void controlRender(RenderManager rm, ViewPort vp) {}
+                    
+                    @Override
+                    public void setSpatial(Spatial spatial) {
+                        super.setSpatial(spatial);
+                        if (spatial != null) {
+                            synchronized(Main.this) {
+                                enemigosEnEscena++;
+                                enemys.add(spatial);
+                            }
+                        }
                     }
-                }
-            });
+                });
 
-            rootNode.attachChild(enemy);
-            enemys.add(enemy);
+                rootNode.attachChild(enemy);
+            }
         }
     }
+    
 
+    
 
     private void createPlayer() {
         // Cargar el modelo
@@ -722,72 +775,62 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
 
     public void collision(PhysicsCollisionEvent event) {
-        if (juegoGanado) return;  
-        Spatial a = event.getNodeA();
-        Spatial b = event.getNodeB();
-        
-        if (a == null || b == null) return;
-
-        Spatial bala = null;
-        Spatial enemigo = null;
-        Spatial jugador = null;
-
-        if ("Bullet".equals(a.getName()) && "Enemy".equals(b.getName())) {
-            bala = a;
-            enemigo = b;
-        } else if ("Enemy".equals(a.getName()) && "Bullet".equals(b.getName())) {
-            bala = b;
-            enemigo = a;
-        }
-
-        if (bala != null && enemigo != null) {
-            EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
-        if (ec != null && !ec.isDead()) {
-            ec.markDead();
-            hitSound.playInstance();
-        
-            // Decrementar contador cuando muere
-            enemigosEnEscena--;
-        
-            addPuntos(10);
-            enemigo.rotate(-FastMath.HALF_PI, 0, 0);
-            enemigo.addControl(new RemoverDespuesControl(2f, bulletAppState));
-        }
+    if (juegoGanado) return;  
+    Spatial a = event.getNodeA();
+    Spatial b = event.getNodeB();
     
-            getPhysicsSpace().remove(bala.getControl(RigidBodyControl.class));
-            bala.removeFromParent();
-        }
+    if (a == null || b == null) return;
 
-        if (bala != null && enemigo != null) {
+    Spatial bala = null;
+    Spatial enemigo = null;
+    Spatial jugador = null;
+
+    // Detección de colisión bala-enemigo
+    if ("Bullet".equals(a.getName()) && "Enemy".equals(b.getName())) {
+        bala = a;
+        enemigo = b;
+    } else if ("Enemy".equals(a.getName()) && "Bullet".equals(b.getName())) {
+        bala = b;
+        enemigo = a;
+    }
+
+    // Detección de colisión jugador-enemigo
+    if (a == player && "Enemy".equals(b.getName())) {
+        jugador = a;
+        enemigo = b;
+    } else if ("Enemy".equals(a.getName()) && b == player) {
+        jugador = b;
+        enemigo = a;
+    }
+
+    if (bala != null && enemigo != null) {
             EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
             if (ec != null && !ec.isDead()) {
                 ec.markDead();
                 hitSound.playInstance();
-
+                removerEnemigo(enemigo); // Usar el método sincronizado
+                addPuntos(10);
                 enemigo.rotate(-FastMath.HALF_PI, 0, 0);
-
                 enemigo.addControl(new RemoverDespuesControl(2f, bulletAppState));
+                getPhysicsSpace().remove(bala.getControl(RigidBodyControl.class));
+                bala.removeFromParent();
             }
-
-            getPhysicsSpace().remove(bala.getControl(RigidBodyControl.class));
-            bala.removeFromParent();
-        }
-        
-        // 🟢 Detectar jugador y enemigo
-        if ("Player".equals(a.getName()) && "Enemy".equals(b.getName())) {
-            jugador = a;
-            enemigo = b;
-        } else if ("Enemy".equals(a.getName()) && "Player".equals(b.getName())) {
-            jugador = b;
-            enemigo = a;
         }
 
-        if (jugador != null && enemigo != null) {
-            damagePlayer(10); // Puedes ajustar el valor del daño
-            // Opcionalmente, evitar múltiples daños por el mismo enemigo:
-            // enemigo.setName("EnemyHit");
-        }
+    if (jugador != null && enemigo != null) {
+    EnemigoControl ec = enemigo.getControl(EnemigoControl.class);
+    if (ec != null && !ec.isDead() && ec.canDamage()) {
+        damagePlayer(10);
+        ec.resetDamageCooldown();
+        // Empujar al jugador
+        Vector3f pushDirection = player.getWorldTranslation()
+            .subtract(enemigo.getWorldTranslation())
+            .normalizeLocal()
+            .multLocal(5f);
+        player.getControl(RigidBodyControl.class).setLinearVelocity(pushDirection);
     }
+}
+}
     
     private void updateBulletText() {
         if (bulletsText != null) {
@@ -807,20 +850,17 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
     }
     
     public void damagePlayer(int amount) {
+        if (juegoGanado || juegoPerdido) return;
+    
         playerHealth -= amount;
         if (playerHealth < 0) playerHealth = 0;
-        healthText.setText("Vida: " + playerHealth);
     
-        if (playerHealth == 0) {
-            // Muestra un mensaje de muerte
-            BitmapText gameOverText = new BitmapText(assetManager.loadFont("Interface/Fonts/Default.fnt"), false);
-            gameOverText.setSize(40);
-            gameOverText.setText("¡Has muerto!");
-            gameOverText.setLocalTranslation(settings.getWidth() / 2 - 100, settings.getHeight() / 2, 0);
-            guiNode.attachChild(gameOverText);
-        
-            // Puedes también detener el juego si quieres
-            // stop();
+        if (healthText != null) {
+            healthText.setText("Vida: " + playerHealth);
+        }
+    
+        if (playerHealth == 0 && !juegoPerdido) {
+            mostrarMensajeMuerte();
         }
     }
     

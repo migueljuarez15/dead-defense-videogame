@@ -27,6 +27,8 @@ public class EnemigoControl extends AbstractControl {
     private float speedBase = 2.2f;       // Velocidad base inicial
     private float speedMax = 4.0f;        // Velocidad máxima posible
     private float currentSpeed;           // Velocidad actual
+    private float damageCooldown = 0f;
+    private final float DAMAGE_COOLDOWN_TIME = 1f; // 1 segundo entre daños
     
 
      private final Main mainGame; // Referencia al juego principal
@@ -53,14 +55,28 @@ public class EnemigoControl extends AbstractControl {
         this.currentSpeed += speedVariation;
     }
     
-    
+    private void handleDeath(float tpf) {
+        deathTimer += tpf;
+        if (deathTimer >= 2f) {
+            // Notificar al juego principal antes de eliminar
+            if (mainGame != null) {
+                mainGame.removerEnemigo(spatial);
+            }
+            spatial.removeFromParent();
+        }
+    }
+   
      
     
     @Override
     protected void controlUpdate(float tpf) {
-         if (isDead) {
-            handleDeath(tpf);
+        if (isDead) {
+            handleDeath(tpf); // Ahora este método existe
             return;
+        }
+
+        if (damageCooldown > 0) {
+            damageCooldown -= tpf;
         }
 
         if (target == null) return;
@@ -69,19 +85,21 @@ public class EnemigoControl extends AbstractControl {
         updateGhostControl();
     }
 
-    private void handleDeath(float tpf) {
-        deathTimer += tpf;
-        if (deathTimer >= 2f) {
-            spatial.removeFromParent();
-        }
+    // Añade este método para verificar si puede hacer daño
+    public boolean canDamage() {
+        return damageCooldown <= 0;
+    }
+
+    // Y este método para resetear el cooldown después de hacer daño
+    public void resetDamageCooldown() {
+        damageCooldown = DAMAGE_COOLDOWN_TIME;
     }
 
     private void moveTowardPlayer(float tpf) {
         if (target == null) return;
 
         Vector3f currentPos = spatial.getLocalTranslation();
-        Vector3f targetPos = target.getWorldTranslation(); // Posición del jugador
-
+        Vector3f targetPos = target.getWorldTranslation();
         Vector3f direction = targetPos.subtract(currentPos);
         float distance = direction.length();
 
@@ -93,10 +111,7 @@ public class EnemigoControl extends AbstractControl {
             spatial.setLocalRotation(spatial.getLocalRotation());
         }
         
-        spatial.move(direction.normalize().mult(currentSpeed * tpf));
-
-        // Movimiento hacia el jugador
-        float currentSpeed = speed + speedVariation;
+        // Movimiento hacia el jugador (solo una llamada a move)
         spatial.move(direction.normalize().mult(currentSpeed * tpf));
     }
 
