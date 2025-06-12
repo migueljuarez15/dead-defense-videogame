@@ -218,6 +218,11 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 
         // Escala de las coordenadas de la textura (ajuste)
         sueloBox.scaleTextureCoordinates(new Vector2f(50, 50));  // Ajusta la escala aquí
+        
+        // Fisicas del  suelo
+        RigidBodyControl sueloControl = new RigidBodyControl(0.0f); // Cuerpo estático
+        suelo.addControl(sueloControl);
+        bulletAppState.getPhysicsSpace().add(sueloControl);
 
         suelo.setLocalTranslation(0, -0.1f, 0);
         rootNode.attachChild(suelo);
@@ -286,6 +291,11 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
                 iterator.remove();
                 enemigosEnEscena--;
             }
+        }
+        
+        if (player != null && player.getWorldTranslation().y < -5f) {
+            player.getControl(RigidBodyControl.class).setPhysicsLocation(new Vector3f(0, 5, 0));
+            player.getControl(RigidBodyControl.class).setLinearVelocity(Vector3f.ZERO);
         }
     }
 
@@ -501,6 +511,11 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         sueloBox.scaleTextureCoordinates(new Vector2f(50, 50));
         suelo.setLocalTranslation(0, -0.1f, 0);
         rootNode.attachChild(suelo);
+        
+        // Fisicas para el suelo
+        RigidBodyControl sueloControl = new RigidBodyControl(0.0f); // masa cero = cuerpo estático
+        suelo.addControl(sueloControl);
+        bulletAppState.getPhysicsSpace().add(sueloControl);
 
         // Posiciones definidas para las tumbas
         Vector3f[] tombPositions = {
@@ -796,7 +811,10 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         // Crear la forma de colisión para el jugador
         CapsuleCollisionShape capsule = new CapsuleCollisionShape(0.9f, 1.8f);
         RigidBodyControl playerPhysics = new RigidBodyControl(capsule, 100f); // masa del jugador
-
+        playerPhysics.setAngularFactor(0); 
+        playerPhysics.setLinearDamping(0.9f); 
+        playerPhysics.setFriction(1.5f); 
+        playerPhysics.setGravity(new Vector3f(0, -30f, 0));
         player.addControl(playerPhysics);
 
         JugadorControl control = new JugadorControl(cam, playerPhysics);
